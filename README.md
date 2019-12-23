@@ -1,2 +1,2 @@
 # yasoo
-Yet Another Serializer Of Objects
+A python serializer of attrs and dataclass objects.
