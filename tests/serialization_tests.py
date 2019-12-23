@@ -6,7 +6,7 @@ from unittest import TestCase
 
 from attr import attrs, attrib
 
-from yasoo import serialize, register_serializer, register_serializer_for_type
+from yasoo import serialize, serializer, serializer_of
 from yasoo.constants import ENUM_VALUE_KEY
 
 
@@ -101,7 +101,7 @@ class SerializationTests(TestCase):
         class Foo:
             pass
 
-        @register_serializer_for_type(Foo)
+        @serializer_of(Foo)
         def func(foo):
             return {'foo': 'bar'}
 
@@ -113,7 +113,7 @@ class SerializationTests(TestCase):
             pass
 
         class Bar:
-            @register_serializer_for_type(Foo)
+            @serializer_of(Foo)
             @staticmethod
             def func(foo):
                 return {'foo': 'bar'}
@@ -124,7 +124,7 @@ class SerializationTests(TestCase):
     def test_serializer_registration_forward_ref(self):
         class Foo:
             @staticmethod
-            @register_serializer_for_type('Foo')
+            @serializer_of('Foo')
             def func(foo):
                 return {'foo': 'bar'}
 
@@ -135,7 +135,7 @@ class SerializationTests(TestCase):
         class Foo:
             pass
 
-        @register_serializer
+        @serializer
         def func(foo: Foo):
             return {'foo': 'bar'}
 
@@ -145,7 +145,7 @@ class SerializationTests(TestCase):
     def test_serializer_registration_type_hint_forward_ref(self):
         class Foo:
             @staticmethod
-            @register_serializer
+            @serializer
             def func(foo: 'Foo'):
                 return {'foo': 'bar'}
 

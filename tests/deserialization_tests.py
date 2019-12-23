@@ -6,8 +6,7 @@ from unittest import TestCase
 from attr import attrs, attrib
 
 from tests.test_classes import AttrsClass
-from yasoo import deserialize, \
-    register_deserializer_for_type, register_deserializer
+from yasoo import deserialize, deserializer_of, deserializer
 from yasoo.constants import ENUM_VALUE_KEY
 
 
@@ -223,7 +222,7 @@ class DeserializationTests(TestCase):
         class Foo:
             pass
 
-        @register_deserializer_for_type(Foo)
+        @deserializer_of(Foo)
         def func(foo):
             return Foo()
 
@@ -236,7 +235,7 @@ class DeserializationTests(TestCase):
             a = attrib()
 
         class Bar:
-            @register_deserializer_for_type(Foo)
+            @deserializer_of(Foo)
             @staticmethod
             def func(data):
                 return Foo(5)
@@ -251,7 +250,7 @@ class DeserializationTests(TestCase):
             a = attrib()
 
             @staticmethod
-            @register_deserializer_for_type('Foo')
+            @deserializer_of('Foo')
             def func(data):
                 return Foo(5)
 
@@ -264,7 +263,7 @@ class DeserializationTests(TestCase):
         class Foo:
             a = attrib()
 
-        @register_deserializer
+        @deserializer
         def func(data) -> Foo:
             return Foo(5)
 
@@ -278,7 +277,7 @@ class DeserializationTests(TestCase):
             a = attrib()
 
             @staticmethod
-            @register_deserializer
+            @deserializer
             def func(data) -> 'Foo':
                 return Foo(5)
 
