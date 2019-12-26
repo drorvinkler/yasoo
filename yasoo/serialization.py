@@ -12,6 +12,13 @@ class Serializer:
         self._custom_serializers = {}
 
     def register(self, type_to_register: Optional[Type] = None):
+        """
+        Registers a custom serialization method that takes the object to be serialized and returns a json-serializable
+        dictionary.
+
+        :param type_to_register: The type of objects this method serializes. Can be a string, but then ``serialize``
+            should be called with the ``globals`` parameter.
+        """
         def registration_method(serialization_method: Union[Callable[[Any], Dict[str, Any]], staticmethod]):
             method = normalize_method(serialization_method)
             t = type_to_register
@@ -28,6 +35,18 @@ class Serializer:
                   fully_qualified_types: bool = True,
                   globals: Optional[Dict[str, Any]] = None
                   ) -> Dict[str, Any]:
+        """
+        Serializes an object to a json-serializable dictionary.
+
+        :param obj: The object to serialize.
+        :param type_key: The key in the resulting dictionary to contain the type name for non-primitive objects.
+            Can be ``None`` to omit this key and rely on type hints when deserializing.
+        :param fully_qualified_types: Whether to use fully qualified type names in the ``type_key``,
+            i.e. whether to write "my_package.MyType" or just "MyType".
+        :param globals: If custom serialization methods were registered and used forward reference
+            ('Foo' instead of Foo), this parameter should be a dictionary from type name to type, most easily
+            acquired using the built-in ``globals()`` function.
+        """
         if globals:
             self._custom_serializers = resolve_types(self._custom_serializers, globals)
         result = self._serialize(obj, type_key, fully_qualified_types, inner=False)

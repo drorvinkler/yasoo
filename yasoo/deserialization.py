@@ -16,6 +16,13 @@ class Deserializer:
         self._custom_deserializers: Dict[Type[T], Callable[[Dict[str, Any]], T]] = {}
 
     def register(self, type_to_register: Optional[Union[Type, str]] = None):
+        """
+        Registers a custom deserialization method that takes a dictionary and returns an instance of the registered
+        type.
+
+        :param type_to_register: The type of objects this method deserializes to. Can be a string, but then
+            ``deserialize`` should be called with the ``globals`` parameter.
+        """
         def registration_method(deserialization_method: Union[Callable[[Dict[str, Any]], Any], staticmethod]):
             method = normalize_method(deserialization_method)
             t = type_to_register
@@ -31,6 +38,17 @@ class Deserializer:
                     obj_type: Optional[Type[T]] = None,
                     type_key: Optional[str] = '__type',
                     globals: Optional[Dict[str, Any]] = None) -> T:
+        """
+        Deserializes an object from a dictionary.
+
+        :param data: The dictionary.
+        :param obj_type: The type of the object to deserialize. Can only be ``None`` if ``data`` contains a type key.
+        :param type_key: The key in ``data`` that contains the type name for non-primitive objects.
+            Can be ``None`` if this key was omitted during serialization and deserialization should rely on type hints.
+        :param globals: If custom deserialization methods were registered and used forward reference
+            ('Foo' instead of Foo), this parameter should be a dictionary from type name to type, most easily
+            acquired using the built-in ``globals()`` function.
+        """
         if globals:
             self._custom_deserializers = resolve_types(self._custom_deserializers, globals)
 
