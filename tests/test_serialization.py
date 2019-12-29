@@ -1,13 +1,16 @@
 import json
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 from unittest import TestCase
 
 from attr import attrs, attrib
+from attr.validators import instance_of
 
 from yasoo import serialize, serializer, serializer_of
 from yasoo.constants import ENUM_VALUE_KEY
+from yasoo.serialization import _logger
 
 
 class SerializationTests(TestCase):
@@ -47,6 +50,67 @@ class SerializationTests(TestCase):
 
         s = serialize(Foo(), type_key='__type', fully_qualified_types=True)
         self.assertEqual('{}.{}'.format(Foo.__module__, Foo.__name__), s.get('__type'))
+
+    def test_attr_warning_on_validator_mismatch(self):
+        @attrs
+        class Foo:
+            bar = attrib(validator=instance_of(int))
+
+        f = Foo(5)
+        f.bar = 'a'
+        with self.assertLogs(_logger.name, logging.WARNING) as cm:
+            serialize(f)
+        self.assertEqual(1, len(cm.records))
+        self.assertEqual(logging.WARNING, cm.records[0].levelno)
+
+    def test_attr_warning_on_validator_mismatch_with_converter(self):
+        @attrs
+        class Foo:
+            bar = attrib(validator=instance_of(int), converter=lambda x: x)
+
+        f = Foo(5)
+        f.bar = 'a'
+        with self.assertLogs(_logger.name, logging.WARNING) as cm:
+            serialize(f)
+        self.assertEqual(1, len(cm.records))
+        self.assertEqual(logging.WARNING, cm.records[0].levelno)
+        self.assertTrue('validator' in cm.records[0].msg)
+
+    def test_attr_warning_on_converter(self):
+        @attrs
+        class Foo:
+            bar = attrib(converter=lambda x: x)
+
+        with self.assertLogs(_logger.name, logging.WARNING) as cm:
+            serialize(Foo(5))
+        self.assertEqual(1, len(cm.records))
+        self.assertEqual(logging.WARNING, cm.records[0].levelno)
+
+    def test_attr_warning_on_converter_validator_valid(self):
+        @attrs
+        class Foo:
+            bar = attrib(validator=instance_of(int), converter=lambda x: x)
+
+        with self.assertLogs(_logger.name, logging.WARNING) as cm:
+            serialize(Foo(5))
+        self.assertEqual(1, len(cm.records))
+        self.assertEqual(logging.WARNING, cm.records[0].levelno)
+
+    def test_attr_no_warning_on_validator_mismatch_for_complex_value(self):
+        @attrs
+        class Foo:
+            a = attrib()
+
+        @attrs
+        class Bar:
+            foo = attrib(validator=instance_of(Foo))
+
+        try:
+            with self.assertLogs(_logger.name, logging.WARNING):
+                serialize(Bar(Foo(5)))
+        except AssertionError:
+            return
+        self.fail()
 
     def test_dataclass_serialization_json_serializable(self):
         @dataclass

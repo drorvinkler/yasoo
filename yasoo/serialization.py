@@ -1,9 +1,12 @@
+import logging
 from enum import Enum
 from inspect import signature
 from typing import Dict, Any, Union, Mapping, Iterable, Callable, Type, Optional
 
 from yasoo.constants import ENUM_VALUE_KEY
-from yasoo.utils import resolve_types, get_fields, normalize_method
+from yasoo.utils import resolve_types, get_fields, normalize_method, Field
+
+_logger = logging.getLogger(__name__)
 
 
 class Serializer:
@@ -19,6 +22,7 @@ class Serializer:
         :param type_to_register: The type of objects this method serializes. Can be a string, but then ``serialize``
             should be called with the ``globals`` parameter.
         """
+
         def registration_method(serialization_method: Union[Callable[[Any], Dict[str, Any]], staticmethod]):
             method = normalize_method(serialization_method)
             t = type_to_register
@@ -58,9 +62,10 @@ class Serializer:
             result = serialization_method(obj)
         else:
             try:
-                field_names = [f.name for f in get_fields(type(obj))]
-                result = {f: self._serialize(getattr(obj, f), type_key, fully_qualified_types)
-                          for f in field_names}
+                fields = get_fields(type(obj))
+                result = {f.name: self._serialize(getattr(obj, f.name), type_key, fully_qualified_types)
+                          for f in fields}
+                self._warn_for_possible_problems_in_deserialization(obj, fields, result)
             except TypeError:
                 if isinstance(obj, Enum):
                     result = {ENUM_VALUE_KEY: obj.value}
@@ -74,6 +79,28 @@ class Serializer:
                 (obj.__class__.__module__, obj.__class__.__name__)) if fully_qualified_types else obj.__class__.__name__
             result[type_key] = type_value
         return result
+
+    @staticmethod
+    def _warn_for_possible_problems_in_deserialization(obj, fields: Iterable[Field], data: Dict[str, Any]) -> None:
+        for f in fields:
+            if f.validator is not None and not isinstance(data[f.name], dict):
+                try:
+                    value = f.converter(data[f.name]) if f.converter is not None else data[f.name]
+                except:
+                    message = 'Field "{}" in obj "{}" has value {} that could not be converted using its converter'.format(
+                        f.name, obj.__class__.__name__, data[f.name])
+                    _logger.warning(message)
+                    continue
+
+                try:
+                    f.validator(obj, f, value)
+                except:
+                    message = 'Field "{}" in obj "{}" has value {} that doesn\'t match this field\'s validator'.format(
+                        f.name, obj.__class__.__name__, value)
+                    _logger.warning(message)
+                    continue
+            if f.converter is not None:
+                _logger.warning('Field "{}" in obj "{}" has a converter'.format(f.name, obj.__class__.__name__))
 
 
 def _convert_to_json_serializable(obj) -> Union[int, float, str, list, dict, None]:

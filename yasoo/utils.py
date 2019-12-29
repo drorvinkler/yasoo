@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict, Any, Union, Type, List
+from typing import Dict, Any, Union, Type, List, Optional
 
 import attr
 from attr.exceptions import NotAnAttrsClassError
@@ -10,6 +10,8 @@ class Field:
     name: str
     field_type: Type
     mandatory: bool
+    validator: Optional[callable] = None
+    converter: Optional[callable] = None
 
 
 def resolve_types(to_resolve: Dict[Union[Type, str], Any], globals: Dict[str, Any]) -> Dict[Type, Any]:
@@ -18,7 +20,8 @@ def resolve_types(to_resolve: Dict[Union[Type, str], Any], globals: Dict[str, An
 
 def get_fields(obj_type: Type) -> List[Field]:
     try:
-        return [Field(f.name, f.type, f.default == attr.NOTHING) for f in attr.fields(obj_type)]
+        return [Field(f.name, f.type, f.default == attr.NOTHING, f.validator, f.converter)
+                for f in attr.fields(obj_type)]
     except NotAnAttrsClassError:
         try:
             return [Field(f.name, f.type, f.default == dataclasses.MISSING and f.default_factory == dataclasses.MISSING)
