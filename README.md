@@ -1,5 +1,23 @@
-# yasoo
-A python serializer of attrs and dataclass objects.
+# `yasoo`: Serialize the Data You Have
+A python serializer of attrs and dataclass objects that doesn't rely on type hints.
+
+## Why yasoo
+The only serialization library to json where this works: 
+```
+from attr import attrs, attrib
+from yasoo import serialize, deserialize
+
+@attrs
+class Foo:
+    a = attrib()
+
+@attrs
+class Bar:
+    foo: Foo = attrib()
+
+serialized = serialize(Bar(foo=5))
+assert(deserialize(serialized).foo == 5) 
+```
 
 ## Usage
 ### Basic Usage
