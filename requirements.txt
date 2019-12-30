@@ -1,1 +1,1 @@
-attrs
+attrs>=16.2

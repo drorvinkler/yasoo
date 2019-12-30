@@ -1,8 +1,12 @@
 # `yasoo`: Serialize the Data You Have
-A python serializer of attrs and dataclass objects that doesn't rely on type hints.
+A python serializer of `attrs` and `dataclass` objects that doesn't rely on type hints.
 
 ## Why yasoo
-The only serialization library to json where this works: 
+`yasoo` adds type data to the serialized data, so deserialization doesn't need to rely on type hints.
+
+Moreover, if you have a field that can contain multiple types of values, or a field which contains some specific implementation of an abstract class, `yasoo` has no problem with that.
+
+For example, this code works fine: 
 ```
 from attr import attrs, attrib
 from yasoo import serialize, deserialize
@@ -46,7 +50,7 @@ class Foo:
         self.foobar = foobar
 
     @serializer
-    def Foo(self: 'Foo'):
+    def serialize(self: 'Foo'):
         result = asdict(self)
         if hasattr(self, 'foobar'):
             result['foobar'] = self.foobar
@@ -69,7 +73,7 @@ If you want to avoid having the `__type` key in your serialized data, you can se
 
 For this to work all fields in the serialized class that are not json-serializable should have a type hint.
 #### Multiple Serialization Methods For The Same Type
-If you want to define a custom serialization method for a type for a specific use case, without affecting the default one, you can create another instance of `Serializer` and register this method om that instance. For example:
+If you want to define a custom serialization method for a type for a specific use case, without affecting the default serializer, you can create another instance of `Serializer` and register the method on that instance. For example:
 ```
 from yasoo import Serializer, serializer, serialize
 

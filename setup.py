@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="yasoo",
-    version="0.1.3",
+    version="0.1.4",
     author="Dror A. Vinkler",
     description="Yet another serializer of objects",
     long_description=long_description,
@@ -20,5 +20,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.7',
+    python_requires='>=3.6',
 )
