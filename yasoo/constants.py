@@ -1,1 +1,1 @@
-ENUM_VALUE_KEY = 'value'
+ENUM_VALUE_KEY = "value"

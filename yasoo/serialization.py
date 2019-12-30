@@ -23,7 +23,9 @@ class Serializer:
             should be called with the ``globals`` parameter.
         """
 
-        def registration_method(serialization_method: Union[Callable[[Any], Dict[str, Any]], staticmethod]):
+        def registration_method(
+            serialization_method: Union[Callable[[Any], Dict[str, Any]], staticmethod]
+        ):
             method = normalize_method(serialization_method)
             t = type_to_register
             if t is None:
@@ -33,12 +35,13 @@ class Serializer:
 
         return registration_method
 
-    def serialize(self,
-                  obj,
-                  type_key: Optional[str] = '__type',
-                  fully_qualified_types: bool = True,
-                  globals: Optional[Dict[str, Any]] = None
-                  ) -> Dict[str, Any]:
+    def serialize(
+        self,
+        obj,
+        type_key: Optional[str] = "__type",
+        fully_qualified_types: bool = True,
+        globals: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         """
         Serializes an object to a json-serializable dictionary.
 
@@ -63,8 +66,10 @@ class Serializer:
         else:
             try:
                 fields = get_fields(type(obj))
-                result = {f.name: self._serialize(getattr(obj, f.name), type_key, fully_qualified_types)
-                          for f in fields}
+                result = {
+                    f.name: self._serialize(getattr(obj, f.name), type_key, fully_qualified_types)
+                    for f in fields
+                }
                 self._warn_for_possible_problems_in_deserialization(obj, fields, result)
             except TypeError:
                 if isinstance(obj, Enum):
@@ -75,20 +80,28 @@ class Serializer:
                     return obj
 
         if type_key is not None:
-            type_value = '.'.join(
-                (obj.__class__.__module__, obj.__class__.__name__)) if fully_qualified_types else obj.__class__.__name__
+            class_name = obj.__class__.__name__
+            if fully_qualified_types:
+                type_value = ".".join((obj.__class__.__module__, class_name))
+            else:
+                type_value = class_name
             result[type_key] = type_value
         return result
 
     @staticmethod
-    def _warn_for_possible_problems_in_deserialization(obj, fields: Iterable[Field], data: Dict[str, Any]) -> None:
+    def _warn_for_possible_problems_in_deserialization(
+        obj, fields: Iterable[Field], data: Dict[str, Any],
+    ) -> None:
         for f in fields:
             if f.validator is not None and not isinstance(data[f.name], dict):
                 try:
-                    value = f.converter(data[f.name]) if f.converter is not None else data[f.name]
+                    value = data[f.name]
+                    if f.converter is not None:
+                        value = f.converter(value)
                 except:
                     message = 'Field "{}" in obj "{}" has value {} that could not be converted using its converter'.format(
-                        f.name, obj.__class__.__name__, data[f.name])
+                        f.name, obj.__class__.__name__, data[f.name]
+                    )
                     _logger.warning(message)
                     continue
 
@@ -96,11 +109,14 @@ class Serializer:
                     f.validator(obj, f, value)
                 except:
                     message = 'Field "{}" in obj "{}" has value {} that doesn\'t match this field\'s validator'.format(
-                        f.name, obj.__class__.__name__, value)
+                        f.name, obj.__class__.__name__, value
+                    )
                     _logger.warning(message)
                     continue
             if f.converter is not None:
-                _logger.warning('Field "{}" in obj "{}" has a converter'.format(f.name, obj.__class__.__name__))
+                _logger.warning(
+                    'Field "{}" in obj "{}" has a converter'.format(f.name, obj.__class__.__name__)
+                )
 
 
 def _convert_to_json_serializable(obj) -> Union[int, float, str, list, dict, None]:
@@ -110,4 +126,6 @@ def _convert_to_json_serializable(obj) -> Union[int, float, str, list, dict, Non
         return {key: _convert_to_json_serializable(value) for key, value in obj.items()}
     if isinstance(obj, Iterable):
         return [_convert_to_json_serializable(item) for item in obj]
-    raise TypeError('Found object of type "{}" which cannot be serialized'.format(type(obj).__name__))
+    raise TypeError(
+        'Found object of type "{}" which cannot be serialized'.format(type(obj).__name__)
+    )

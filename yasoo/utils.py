@@ -18,21 +18,35 @@ class Field:
     converter: Optional[callable] = attr.attrib(default=None)
 
 
-def resolve_types(to_resolve: Dict[Union[Type, str], Any], globals: Dict[str, Any]) -> Dict[Type, Any]:
-    return {globals.get(k) if isinstance(k, str) else k: v for k, v in to_resolve.items()}
+def resolve_types(
+    to_resolve: Dict[Union[Type, str], Any], globals: Dict[str, Any]
+) -> Dict[Type, Any]:
+    return {_resolve_type(globals, k): v for k, v in to_resolve.items()}
 
 
 def get_fields(obj_type: Type) -> List[Field]:
     try:
-        return [Field(f.name, f.type, f.default == attr.NOTHING, f.validator, f.converter)
-                for f in attr.fields(obj_type)]
+        return [
+            Field(f.name, f.type, f.default == attr.NOTHING, f.validator, f.converter)
+            for f in attr.fields(obj_type)
+        ]
     except NotAnAttrsClassError:
         try:
-            return [Field(f.name, f.type, f.default == dataclasses.MISSING and f.default_factory == dataclasses.MISSING)
-                    for f in dataclasses.fields(obj_type)]
+            return [
+                Field(f.name, f.type, _dataclass_field_mandatory(f))
+                for f in dataclasses.fields(obj_type)
+            ]
         except (TypeError, AttributeError):
-            raise TypeError('can only serialize attrs or dataclass classes')
+            raise TypeError("can only serialize attrs or dataclass classes")
 
 
 def normalize_method(method) -> callable:
     return method.__func__ if isinstance(method, staticmethod) else method
+
+
+def _resolve_type(globals, t):
+    return globals.get(t) if isinstance(t, str) else t
+
+
+def _dataclass_field_mandatory(field):
+    return field.default == dataclasses.MISSING and field.default_factory == dataclasses.MISSING
