@@ -1,4 +1,9 @@
 # `yasoo`: Serialize the Data You Have
+
+[![Build Status](https://travis-ci.com/drorvinkler/yasoo.svg?branch=master)](https://travis-ci.com/drorvinkler/yasoo)
+[![codecov](https://codecov.io/gh/drorvinkler/yasoo/branch/master/graph/badge.svg)](https://codecov.io/gh/drorvinkler/yasoo)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A python serializer of `attrs` and `dataclass` objects that doesn't rely on type hints.
 
 ## Why yasoo
