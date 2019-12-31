@@ -1,13 +1,11 @@
 import json
 import logging
-from enum import Enum
 from unittest import TestCase
 
 from attr import attrs, attrib
 from attr.validators import instance_of
 
 from yasoo import serialize
-from yasoo.constants import ENUM_VALUE_KEY
 from yasoo.serialization import _logger
 
 
@@ -122,15 +120,3 @@ class TestAttrsSerialization(TestCase):
         self.assertEqual(1, len(cm.records))
         self.assertEqual(logging.WARNING, cm.records[0].levelno)
         self.assertIn('value', cm.records[0].msg)
-
-    def test_enum_serialization(self):
-        class Foo(Enum):
-            A = 5
-            B = 89
-
-        @attrs
-        class Bar:
-            foo = attrib()
-
-        s = serialize(Bar(Foo.A))
-        self.assertEqual(Foo.A.value, s['foo'][ENUM_VALUE_KEY])

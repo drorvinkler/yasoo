@@ -1,11 +1,9 @@
-from enum import Enum
 from unittest import TestCase
 
 from attr import attrs, attrib
 
 from tests.test_classes import AttrsClass
 from yasoo import deserialize
-from yasoo.constants import ENUM_VALUE_KEY
 
 
 class TestAttrsDeserialization(TestCase):
@@ -104,17 +102,3 @@ class TestAttrsDeserialization(TestCase):
         self.assertEqual(type(b), Bar)
         self.assertEqual(type(b.foo), Foo)
         self.assertEqual(b.foo.a, 5)
-
-    def test_enum_deserialization(self):
-        class Foo(Enum):
-            A = 5
-            B = 89
-
-        @attrs
-        class Bar:
-            foo: Foo = attrib()
-
-        b = deserialize({'foo': {ENUM_VALUE_KEY: 5}}, obj_type=Bar, globals=locals())
-        self.assertEqual(type(b), Bar)
-        self.assertEqual(type(b.foo), Foo)
-        self.assertEqual(b.foo, Foo.A)

@@ -1,9 +1,19 @@
+from enum import Enum
 from unittest import TestCase
 
 from yasoo import serialize, serializer, serializer_of
+from yasoo.constants import ENUM_VALUE_KEY
 
 
 class TestSerializationCommon(TestCase):
+    def test_enum_serialization(self):
+        class Foo(Enum):
+            A = 5
+            B = 89
+
+        s = serialize(Foo.A)
+        self.assertEqual(Foo.A.value, s[ENUM_VALUE_KEY])
+
     def test_serializer_registration(self):
         class Foo:
             pass
