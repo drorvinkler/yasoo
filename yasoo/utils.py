@@ -45,6 +45,10 @@ def normalize_method(method) -> callable:
     return method.__func__ if isinstance(method, staticmethod) else method
 
 
+def is_obj_supported_primitive(obj):
+    return isinstance(obj, bool) or isinstance(obj, int) or isinstance(obj, float) or isinstance(obj, str) or obj is None
+
+
 def _resolve_type(globals, t):
     return globals.get(t) if isinstance(t, str) else t
 

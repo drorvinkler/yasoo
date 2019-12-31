@@ -6,6 +6,13 @@ from yasoo.constants import ENUM_VALUE_KEY
 
 
 class TestSerializationCommon(TestCase):
+    def test_serialization_of_primitives(self):
+        self.assertEqual(True, serialize(True))
+        self.assertEqual(5, serialize(5))
+        self.assertEqual(5.5, serialize(5.5))
+        self.assertEqual('5', serialize('5'))
+        self.assertEqual(None, serialize(None))
+
     def test_enum_serialization(self):
         class Foo(Enum):
             A = 5
@@ -88,3 +95,19 @@ class TestSerializationCommon(TestCase):
             return {'bar': Bar()}
 
         self.assertRaises(TypeError, serialize, Foo())
+
+    def test_serialization_of_list(self):
+        class Foo:
+            pass
+
+        @serializer
+        def deserialize_foo(_: Foo):
+            return {}
+
+        type_key = '__type'
+        list_len = 5
+        s = serialize([Foo() for _ in range(list_len)], type_key=type_key, fully_qualified_types=False, globals=locals())
+        self.assertIsInstance(s, list)
+        self.assertEqual(list_len, len(s))
+        for d in s:
+            self.assertEqual({type_key: 'Foo'}, d)

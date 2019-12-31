@@ -4,7 +4,7 @@ from inspect import signature
 from typing import Dict, Any, Union, Mapping, Iterable, Callable, Type, Optional
 
 from yasoo.constants import ENUM_VALUE_KEY
-from yasoo.utils import resolve_types, get_fields, normalize_method, Field
+from yasoo.utils import resolve_types, get_fields, normalize_method, Field, is_obj_supported_primitive
 
 _logger = logging.getLogger(__name__)
 
@@ -41,9 +41,10 @@ class Serializer:
         type_key: Optional[str] = "__type",
         fully_qualified_types: bool = True,
         globals: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+    ) -> Optional[Union[bool, int, float, str, list, Dict[str, Any]]]:
         """
-        Serializes an object to a json-serializable dictionary.
+        Serializes an object to a json-serializable dictionary or list,
+        or returns the object itself if it's json-serializable.
 
         :param obj: The object to serialize.
         :param type_key: The key in the resulting dictionary to contain the type name for non-primitive objects.
@@ -54,9 +55,16 @@ class Serializer:
             ('Foo' instead of Foo), this parameter should be a dictionary from type name to type, most easily
             acquired using the built-in ``globals()`` function.
         """
+        if is_obj_supported_primitive(obj):
+            return obj
+
         if globals:
             self._custom_serializers = resolve_types(self._custom_serializers, globals)
-        result = self._serialize(obj, type_key, fully_qualified_types, inner=False)
+
+        if isinstance(obj, list):
+            result = [self._serialize(item, type_key, fully_qualified_types, inner=False) for item in obj]
+        else:
+            result = self._serialize(obj, type_key, fully_qualified_types, inner=False)
         return _convert_to_json_serializable(result)
 
     def _serialize(self, obj, type_key, fully_qualified_types, inner=True):
@@ -120,7 +128,7 @@ class Serializer:
 
 
 def _convert_to_json_serializable(obj) -> Union[int, float, str, list, dict, None]:
-    if isinstance(obj, int) or isinstance(obj, float) or isinstance(obj, str) or obj is None:
+    if is_obj_supported_primitive(obj):
         return obj
     if isinstance(obj, Mapping):
         return {key: _convert_to_json_serializable(value) for key, value in obj.items()}

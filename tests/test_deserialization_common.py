@@ -6,6 +6,13 @@ from yasoo.constants import ENUM_VALUE_KEY
 
 
 class TestSerializationCommon(TestCase):
+    def test_deserialization_of_primitives(self):
+        self.assertEqual(True, deserialize(True))
+        self.assertEqual(5, deserialize(5))
+        self.assertEqual(5.5, deserialize(5.5))
+        self.assertEqual('5', deserialize('5'))
+        self.assertEqual(None, deserialize(None))
+
     def test_deserialization_unknown_type_raises_error(self):
         self.assertRaises(ValueError, deserialize, {})
 
@@ -77,3 +84,19 @@ class TestSerializationCommon(TestCase):
 
         f = deserialize({}, Foo, globals=locals())
         self.assertEqual(Foo, type(f))
+
+    def test_deserialization_of_list(self):
+        class Foo:
+            pass
+
+        @deserializer
+        def deserialize_foo(_) -> Foo:
+            return Foo()
+
+        type_key = '__type'
+        list_len = 5
+        deserialized = deserialize([{type_key: 'Foo'} for _ in range(list_len)], type_key=type_key, globals=locals())
+        self.assertIsInstance(deserialized, list)
+        self.assertEqual(list_len, len(deserialized))
+        for f in deserialized:
+            self.assertIsInstance(f, Foo)

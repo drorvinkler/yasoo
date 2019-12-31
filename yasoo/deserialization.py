@@ -5,7 +5,7 @@ from inspect import signature
 from typing import Optional, Type, Union, Callable, Dict, Any, TypeVar
 
 from yasoo.constants import ENUM_VALUE_KEY
-from yasoo.utils import resolve_types, get_fields, normalize_method
+from yasoo.utils import resolve_types, get_fields, normalize_method, is_obj_supported_primitive
 
 T = TypeVar("T")
 
@@ -38,13 +38,14 @@ class Deserializer:
 
     def deserialize(
         self,
-        data: Dict[str, Any],
+        data: Optional[Union[bool, int, float, str, list, Dict[str, Any]]],
         obj_type: Optional[Type[T]] = None,
         type_key: Optional[str] = "__type",
         globals: Optional[Dict[str, Any]] = None,
     ) -> T:
         """
-        Deserializes an object from a dictionary.
+        Deserializes an object from a dictionary or a list of dictionaries,
+        or returns the object itself if it's a primitive (including ``None``).
 
         :param data: The dictionary.
         :param obj_type: The type of the object to deserialize. Can only be ``None`` if ``data`` contains a type key.
@@ -54,8 +55,14 @@ class Deserializer:
             ('Foo' instead of Foo), this parameter should be a dictionary from type name to type, most easily
             acquired using the built-in ``globals()`` function.
         """
+        if is_obj_supported_primitive(data):
+            return data
+
         if globals:
             self._custom_deserializers = resolve_types(self._custom_deserializers, globals)
+
+        if isinstance(data, list):
+            return [self.deserialize(d, obj_type, type_key, globals) for d in data]
 
         return self._deserialize(data, obj_type, type_key, globals)
 
