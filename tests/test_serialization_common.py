@@ -1,0 +1,80 @@
+from unittest import TestCase
+
+from yasoo import serialize, serializer, serializer_of
+
+
+class TestSerializationCommon(TestCase):
+    def test_serializer_registration(self):
+        class Foo:
+            pass
+
+        @serializer_of(Foo)
+        def func(_):
+            return {'foo': 'bar'}
+
+        s = serialize(Foo())
+        self.assertEqual(s.get('foo'), 'bar')
+
+    def test_serializer_registration_static_method(self):
+        class Foo:
+            pass
+
+        class Bar:
+            # noinspection PyNestedDecorators
+            @serializer_of(Foo)
+            @staticmethod
+            def func(_):
+                return {'foo': 'bar'}
+
+        s = serialize(Foo(), globals=locals())
+        self.assertEqual(s.get('foo'), 'bar')
+
+    def test_serializer_registration_forward_ref(self):
+        class Foo:
+            @staticmethod
+            @serializer_of('Foo')
+            def func(_):
+                return {'foo': 'bar'}
+
+        s = serialize(Foo(), globals=locals())
+        self.assertEqual(s.get('foo'), 'bar')
+
+    def test_serializer_registration_type_hint(self):
+        class Foo:
+            pass
+
+        @serializer
+        def func(_: Foo):
+            return {'foo': 'bar'}
+
+        s = serialize(Foo(), globals=locals())
+        self.assertEqual(s.get('foo'), 'bar')
+
+    def test_serializer_registration_type_hint_forward_ref(self):
+        class Foo:
+            @staticmethod
+            @serializer
+            def func(_: 'Foo'):
+                return {'foo': 'bar'}
+
+        s = serialize(Foo(), globals=locals())
+        self.assertEqual(s.get('foo'), 'bar')
+
+    def test_serialization_regular_class_raises_error(self):
+        class Foo:
+            pass
+
+        self.assertRaises(TypeError, serialize, Foo())
+
+    def test_serialization_inner_regular_class_raises_error(self):
+        class Foo:
+            pass
+
+        class Bar:
+            pass
+
+        @serializer
+        def serialize_foo(_: Foo):
+            return {'bar': Bar()}
+
+        self.assertRaises(TypeError, serialize, Foo())

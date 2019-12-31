@@ -4,7 +4,7 @@ from unittest import TestCase
 from attr import attrs, attrib
 
 from tests.test_classes import AttrsClass
-from yasoo import deserialize, deserializer_of, deserializer
+from yasoo import deserialize
 from yasoo.constants import ENUM_VALUE_KEY
 
 
@@ -118,70 +118,3 @@ class TestAttrsDeserialization(TestCase):
         self.assertEqual(type(b), Bar)
         self.assertEqual(type(b.foo), Foo)
         self.assertEqual(b.foo, Foo.A)
-
-    def test_deserializer_registration(self):
-        class Foo:
-            pass
-
-        @deserializer_of(Foo)
-        def func(foo):
-            return Foo()
-
-        f = deserialize({}, Foo)
-        self.assertEqual(Foo, type(f))
-
-    def test_deserializer_registration_static_method(self):
-        @attrs
-        class Foo:
-            a = attrib()
-
-        class Bar:
-            @deserializer_of(Foo)
-            @staticmethod
-            def func(data):
-                return Foo(5)
-
-        f = deserialize({}, Foo)
-        self.assertEqual(Foo, type(f))
-        self.assertEqual(5, f.a)
-
-    def test_deserializer_registration_forward_ref(self):
-        @attrs
-        class Foo:
-            a = attrib()
-
-            @staticmethod
-            @deserializer_of('Foo')
-            def func(data):
-                return Foo(5)
-
-        f = deserialize({}, Foo, globals=locals())
-        self.assertEqual(Foo, type(f))
-        self.assertEqual(5, f.a)
-
-    def test_deserializer_registration_type_hint(self):
-        @attrs
-        class Foo:
-            a = attrib()
-
-        @deserializer
-        def func(data) -> Foo:
-            return Foo(5)
-
-        f = deserialize({}, Foo)
-        self.assertEqual(Foo, type(f))
-        self.assertEqual(5, f.a)
-
-    def test_deserializer_registration_type_hint_forward_ref(self):
-        @attrs
-        class Foo:
-            a = attrib()
-
-            @staticmethod
-            @deserializer
-            def func(data) -> 'Foo':
-                return Foo(5)
-
-        f = deserialize({}, Foo, globals=locals())
-        self.assertEqual(Foo, type(f))
-        self.assertEqual(5, f.a)

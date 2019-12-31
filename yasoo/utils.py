@@ -37,7 +37,8 @@ def get_fields(obj_type: Type) -> List[Field]:
                 for f in dataclasses.fields(obj_type)
             ]
         except (TypeError, AttributeError):
-            raise TypeError("can only serialize attrs or dataclass classes")
+            pass
+    raise TypeError("can only serialize attrs or dataclass classes")
 
 
 def normalize_method(method) -> callable:

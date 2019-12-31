@@ -93,18 +93,18 @@ class Serializer:
         obj, fields: Iterable[Field], data: Dict[str, Any],
     ) -> None:
         for f in fields:
-            if f.validator is not None and not isinstance(data[f.name], dict):
-                try:
-                    value = data[f.name]
-                    if f.converter is not None:
-                        value = f.converter(value)
-                except:
-                    message = 'Field "{}" in obj "{}" has value {} that could not be converted using its converter'.format(
-                        f.name, obj.__class__.__name__, data[f.name]
-                    )
-                    _logger.warning(message)
-                    continue
+            try:
+                value = data[f.name]
+                if f.converter is not None:
+                    value = f.converter(value)
+            except:
+                message = 'Field "{}" in obj "{}" has value {} that could not be converted using its converter'.format(
+                    f.name, obj.__class__.__name__, data[f.name]
+                )
+                _logger.warning(message)
+                continue
 
+            if f.validator is not None and not isinstance(data[f.name], dict):
                 try:
                     f.validator(obj, f, value)
                 except:

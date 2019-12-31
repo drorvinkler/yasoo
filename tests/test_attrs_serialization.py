@@ -6,7 +6,7 @@ from unittest import TestCase
 from attr import attrs, attrib
 from attr.validators import instance_of
 
-from yasoo import serialize, serializer, serializer_of
+from yasoo import serialize
 from yasoo.constants import ENUM_VALUE_KEY
 from yasoo.serialization import _logger
 
@@ -110,6 +110,19 @@ class TestAttrsSerialization(TestCase):
             return
         self.fail()
 
+    def test_attr_warning_on_exception_in_converter(self):
+        @attrs
+        class Foo:
+            bar = attrib(converter=lambda x: 1 / x)
+
+        f = Foo(5)
+        f.bar = 0
+        with self.assertLogs(_logger.name, logging.WARNING) as cm:
+            serialize(f)
+        self.assertEqual(1, len(cm.records))
+        self.assertEqual(logging.WARNING, cm.records[0].levelno)
+        self.assertIn('value', cm.records[0].msg)
+
     def test_enum_serialization(self):
         class Foo(Enum):
             A = 5
@@ -121,58 +134,3 @@ class TestAttrsSerialization(TestCase):
 
         s = serialize(Bar(Foo.A))
         self.assertEqual(Foo.A.value, s['foo'][ENUM_VALUE_KEY])
-
-    def test_serializer_registration(self):
-        class Foo:
-            pass
-
-        @serializer_of(Foo)
-        def func(foo):
-            return {'foo': 'bar'}
-
-        s = serialize(Foo())
-        self.assertEqual(s.get('foo'), 'bar')
-
-    def test_serializer_registration_static_method(self):
-        class Foo:
-            pass
-
-        class Bar:
-            @serializer_of(Foo)
-            @staticmethod
-            def func(foo):
-                return {'foo': 'bar'}
-
-        s = serialize(Foo(), globals=locals())
-        self.assertEqual(s.get('foo'), 'bar')
-
-    def test_serializer_registration_forward_ref(self):
-        class Foo:
-            @staticmethod
-            @serializer_of('Foo')
-            def func(foo):
-                return {'foo': 'bar'}
-
-        s = serialize(Foo(), globals=locals())
-        self.assertEqual(s.get('foo'), 'bar')
-
-    def test_serializer_registration_type_hint(self):
-        class Foo:
-            pass
-
-        @serializer
-        def func(foo: Foo):
-            return {'foo': 'bar'}
-
-        s = serialize(Foo(), globals=locals())
-        self.assertEqual(s.get('foo'), 'bar')
-
-    def test_serializer_registration_type_hint_forward_ref(self):
-        class Foo:
-            @staticmethod
-            @serializer
-            def func(foo: 'Foo'):
-                return {'foo': 'bar'}
-
-        s = serialize(Foo(), globals=locals())
-        self.assertEqual(s.get('foo'), 'bar')
