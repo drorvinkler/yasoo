@@ -46,7 +46,13 @@ def normalize_method(method) -> callable:
 
 
 def is_obj_supported_primitive(obj):
-    return isinstance(obj, bool) or isinstance(obj, int) or isinstance(obj, float) or isinstance(obj, str) or obj is None
+    return (
+        isinstance(obj, bool)
+        or isinstance(obj, int)
+        or isinstance(obj, float)
+        or isinstance(obj, str)
+        or obj is None
+    )
 
 
 def _resolve_type(globals, t):
@@ -54,4 +60,7 @@ def _resolve_type(globals, t):
 
 
 def _dataclass_field_mandatory(field):
-    return field.default == dataclasses.MISSING and field.default_factory == dataclasses.MISSING
+    return (
+        field.default == dataclasses.MISSING
+        and field.default_factory == dataclasses.MISSING
+    )

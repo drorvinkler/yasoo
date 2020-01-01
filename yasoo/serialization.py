@@ -4,7 +4,13 @@ from inspect import signature
 from typing import Dict, Any, Union, Mapping, Iterable, Callable, Type, Optional
 
 from yasoo.constants import ENUM_VALUE_KEY
-from yasoo.utils import resolve_types, get_fields, normalize_method, Field, is_obj_supported_primitive
+from yasoo.utils import (
+    resolve_types,
+    get_fields,
+    normalize_method,
+    Field,
+    is_obj_supported_primitive,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -62,7 +68,10 @@ class Serializer:
             self._custom_serializers = resolve_types(self._custom_serializers, globals)
 
         if isinstance(obj, list):
-            result = [self._serialize(item, type_key, fully_qualified_types, inner=False) for item in obj]
+            result = [
+                self._serialize(item, type_key, fully_qualified_types, inner=False)
+                for item in obj
+            ]
         else:
             result = self._serialize(obj, type_key, fully_qualified_types, inner=False)
         return _convert_to_json_serializable(result)
@@ -75,7 +84,9 @@ class Serializer:
             try:
                 fields = get_fields(type(obj))
                 result = {
-                    f.name: self._serialize(getattr(obj, f.name), type_key, fully_qualified_types)
+                    f.name: self._serialize(
+                        getattr(obj, f.name), type_key, fully_qualified_types,
+                    )
                     for f in fields
                 }
                 self._warn_for_possible_problems_in_deserialization(obj, fields, result)
@@ -123,7 +134,9 @@ class Serializer:
                     continue
             if f.converter is not None:
                 _logger.warning(
-                    'Field "{}" in obj "{}" has a converter'.format(f.name, obj.__class__.__name__)
+                    'Field "{}" in obj "{}" has a converter'.format(
+                        f.name, obj.__class__.__name__
+                    )
                 )
 
 
@@ -135,5 +148,7 @@ def _convert_to_json_serializable(obj) -> Union[int, float, str, list, dict, Non
     if isinstance(obj, Iterable):
         return [_convert_to_json_serializable(item) for item in obj]
     raise TypeError(
-        'Found object of type "{}" which cannot be serialized'.format(type(obj).__name__)
+        'Found object of type "{}" which cannot be serialized'.format(
+            type(obj).__name__
+        )
     )

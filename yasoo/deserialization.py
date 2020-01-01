@@ -5,7 +5,12 @@ from inspect import signature
 from typing import Optional, Type, Union, Callable, Dict, Any, TypeVar
 
 from yasoo.constants import ENUM_VALUE_KEY
-from yasoo.utils import resolve_types, get_fields, normalize_method, is_obj_supported_primitive
+from yasoo.utils import (
+    resolve_types,
+    get_fields,
+    normalize_method,
+    is_obj_supported_primitive,
+)
 
 T = TypeVar("T")
 
@@ -59,7 +64,9 @@ class Deserializer:
             return data
 
         if globals:
-            self._custom_deserializers = resolve_types(self._custom_deserializers, globals)
+            self._custom_deserializers = resolve_types(
+                self._custom_deserializers, globals
+            )
 
         if isinstance(data, list):
             return [self.deserialize(d, obj_type, type_key, globals) for d in data]
@@ -99,7 +106,11 @@ class Deserializer:
 
     @staticmethod
     def _check_for_missing_fields(data, fields, obj_type):
-        missing = {name for name, field in fields.items() if name not in data and field.mandatory}
+        missing = {
+            name
+            for name, field in fields.items()
+            if name not in data and field.mandatory
+        }
         if missing:
             raise ValueError(
                 'Missing fields "{}" for object type "{}". Data is:\n{}'.format(
