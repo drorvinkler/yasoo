@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.com/drorvinkler/yasoo.svg?branch=master)](https://travis-ci.com/drorvinkler/yasoo)
 [![codecov](https://codecov.io/gh/drorvinkler/yasoo/branch/master/graph/badge.svg)](https://codecov.io/gh/drorvinkler/yasoo)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 A python serializer of `attrs` and `dataclass` objects that doesn't rely on type hints.
 
@@ -11,7 +12,7 @@ A python serializer of `attrs` and `dataclass` objects that doesn't rely on type
 
 Moreover, if you have a field that can contain multiple types of values, or a field which contains some specific implementation of an abstract class, `yasoo` has no problem with that.
 
-For example, this code works fine: 
+For example, this code works fine:
 ```
 from attr import attrs, attrib
 from yasoo import serialize, deserialize
@@ -25,7 +26,7 @@ class Bar:
     foo: Foo = attrib()
 
 serialized = serialize(Bar(foo=5))
-assert(deserialize(serialized).foo == 5) 
+assert(deserialize(serialized).foo == 5)
 ```
 
 ## Usage
