@@ -112,20 +112,18 @@ class Deserializer:
             if name not in data and field.mandatory
         }
         if missing:
+            missing_str = '", "'.join(missing)
             raise ValueError(
-                'Missing fields "{}" for object type "{}". Data is:\n{}'.format(
-                    '", "'.join(missing), obj_type.__name__, json.dumps(data)
-                )
+                f'Missing fields "{missing_str}" for object type "{obj_type.__name__}". Data is:\n{json.dumps(data)}'
             )
 
     @staticmethod
     def _check_for_extraneous_fields(data, fields, obj_type):
         extraneous = set(data.keys()).difference(fields)
         if extraneous:
+            extraneous_str = '", "'.join(extraneous)
             raise ValueError(
-                'Found extraneous fields "{}" for object type "{}". Data is:\n{}'.format(
-                    '", "'.join(extraneous), obj_type.__name__, json.dumps(data)
-                )
+                f'Found extraneous fields "{extraneous_str}" for object type "{obj_type.__name__}". Data is:\n{json.dumps(data)}'
             )
 
     @staticmethod
@@ -139,9 +137,7 @@ class Deserializer:
             return Deserializer._get_type(data[type_key], globals)
         if obj_type is None:
             raise ValueError(
-                "type key not found in data and obj type could not be inferred.\nData: {}".format(
-                    json.dumps(data)
-                )
+                f"type key not found in data and obj type could not be inferred.\nData: {json.dumps(data)}"
             )
         return obj_type
 

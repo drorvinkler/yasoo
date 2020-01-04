@@ -117,26 +117,22 @@ class Serializer:
                 if f.converter is not None:
                     value = f.converter(value)
             except:
-                message = 'Field "{}" in obj "{}" has value {} that could not be converted using its converter'.format(
-                    f.name, obj.__class__.__name__, data[f.name]
+                _logger.warning(
+                    f'Field "{f.name}" in obj "{obj.__class__.__name__}" has value {data[f.name]} that could not be converted using its converter'
                 )
-                _logger.warning(message)
                 continue
 
             if f.validator is not None and not isinstance(data[f.name], dict):
                 try:
                     f.validator(obj, f, value)
                 except:
-                    message = 'Field "{}" in obj "{}" has value {} that doesn\'t match this field\'s validator'.format(
-                        f.name, obj.__class__.__name__, value
+                    _logger.warning(
+                        f'Field "{f.name}" in obj "{obj.__class__.__name__}" has value {value} that doesn\'t match this field\'s validator'
                     )
-                    _logger.warning(message)
                     continue
             if f.converter is not None:
                 _logger.warning(
-                    'Field "{}" in obj "{}" has a converter'.format(
-                        f.name, obj.__class__.__name__
-                    )
+                    f'Field "{f.name}" in obj "{obj.__class__.__name__}" has a converter'
                 )
 
 
@@ -148,7 +144,5 @@ def _convert_to_json_serializable(obj) -> Union[int, float, str, list, dict, Non
     if isinstance(obj, Iterable):
         return [_convert_to_json_serializable(item) for item in obj]
     raise TypeError(
-        'Found object of type "{}" which cannot be serialized'.format(
-            type(obj).__name__
-        )
+        f'Found object of type "{type(obj).__name__}" which cannot be serialized'
     )

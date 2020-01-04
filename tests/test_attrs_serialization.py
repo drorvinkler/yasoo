@@ -4,7 +4,6 @@ from unittest import TestCase
 
 from attr import attrs, attrib
 from attr.validators import instance_of
-
 from yasoo import serialize
 from yasoo.serialization import _logger
 
@@ -45,7 +44,7 @@ class TestAttrsSerialization(TestCase):
         self.assertEqual(Foo.__name__, s.get('__type'))
 
         s = serialize(Foo(), type_key='__type', fully_qualified_types=True)
-        self.assertEqual('{}.{}'.format(Foo.__module__, Foo.__name__), s.get('__type'))
+        self.assertEqual(f'{Foo.__module__}.{Foo.__name__}', s.get('__type'))
 
     def test_attr_warning_on_validator_mismatch(self):
         @attrs
