@@ -1,5 +1,5 @@
-from yasoo.deserialization import Deserializer
-from yasoo.serialization import Serializer
+from .deserialization import Deserializer
+from .serialization import Serializer
 
 _default_serializer = Serializer()
 serialize = _default_serializer.serialize

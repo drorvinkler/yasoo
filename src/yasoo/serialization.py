@@ -3,8 +3,8 @@ from enum import Enum
 from inspect import signature
 from typing import Dict, Any, Union, Mapping, Iterable, Callable, Type, Optional
 
-from yasoo.constants import ENUM_VALUE_KEY
-from yasoo.utils import (
+from .constants import ENUM_VALUE_KEY
+from .utils import (
     resolve_types,
     get_fields,
     normalize_method,
