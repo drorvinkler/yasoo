@@ -144,7 +144,9 @@ class Deserializer:
     @staticmethod
     def _get_type(type_name: str, globals: Optional[Dict[str, Any]]) -> Type:
         if "." not in type_name:
-            return globals.get(type_name)
+            if type_name not in globals:
+                raise ValueError(f"type {type_name} not found in globals.")
+            return globals[type_name]
         module_name = type_name[: type_name.rindex(".")]
         class_name = type_name[len(module_name) + 1 :]
         return getattr(import_module(module_name), class_name)
