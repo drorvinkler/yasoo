@@ -60,26 +60,26 @@ class Deserializer:
             ('Foo' instead of Foo), this parameter should be a dictionary from type name to type, most easily
             acquired using the built-in ``globals()`` function.
         """
-        if is_obj_supported_primitive(data):
-            return data
-
         if globals:
             self._custom_deserializers = resolve_types(
                 self._custom_deserializers, globals
             )
 
-        if isinstance(data, list):
-            return [self.deserialize(d, obj_type, type_key, globals) for d in data]
-
         return self._deserialize(data, obj_type, type_key, globals)
 
     def _deserialize(
         self,
-        data: Dict[str, Any],
+        data: Optional[Union[bool, int, float, str, list, Dict[str, Any]]],
         obj_type: Optional[Type[T]],
         type_key: Optional[str],
         globals: Optional[Dict[str, Any]],
     ):
+        if is_obj_supported_primitive(data):
+            return data
+
+        if isinstance(data, list):
+            return [self._deserialize(d, obj_type, type_key, globals) for d in data]
+
         obj_type = self._get_object_type(obj_type, data, type_key, globals)
         if type_key in data:
             data.pop(type_key)
@@ -99,7 +99,7 @@ class Deserializer:
 
     def _load_inner_fields(self, data, fields, type_key, globals):
         for key, value in data.items():
-            if not isinstance(value, dict):
+            if not isinstance(value, dict) and not isinstance(value, list):
                 continue
             field = fields[key]
             data[key] = self._deserialize(value, field.field_type, type_key, globals)

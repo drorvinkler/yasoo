@@ -4,6 +4,8 @@ from unittest import TestCase
 from yasoo import deserialize, deserializer_of, deserializer
 from yasoo.constants import ENUM_VALUE_KEY
 
+from tests.test_classes import FooContainer
+
 
 class TestSerializationCommon(TestCase):
     def test_deserialization_of_primitives(self):
@@ -99,4 +101,42 @@ class TestSerializationCommon(TestCase):
         self.assertIsInstance(deserialized, list)
         self.assertEqual(list_len, len(deserialized))
         for f in deserialized:
+            self.assertIsInstance(f, Foo)
+
+    def test_deserialization_of_inner_list_of_primitives(self):
+        type_key = '__type'
+        list_len = 5
+        list_val = 1
+        deserialized = deserialize({
+            type_key: FooContainer.__name__,
+            'foo': [list_val] * list_len
+        },
+            type_key=type_key,
+            globals=dict(locals(), **globals()))
+        self.assertIsInstance(deserialized, FooContainer)
+        self.assertIsInstance(deserialized.foo, list)
+        self.assertEqual(list_len, len(deserialized.foo))
+        for f in deserialized.foo:
+            self.assertEqual(f, list_val)
+
+    def test_deserialization_of_inner_list_of_classes(self):
+        class Foo:
+            pass
+
+        @deserializer
+        def deserialize_foo(_) -> Foo:
+            return Foo()
+
+        type_key = '__type'
+        list_len = 5
+        deserialized = deserialize({
+            type_key: FooContainer.__name__,
+            'foo': [{type_key: 'Foo'} for _ in range(list_len)]
+        },
+            type_key=type_key,
+            globals=dict(locals(), **globals()))
+        self.assertIsInstance(deserialized, FooContainer)
+        self.assertIsInstance(deserialized.foo, list)
+        self.assertEqual(list_len, len(deserialized.foo))
+        for f in deserialized.foo:
             self.assertIsInstance(f, Foo)

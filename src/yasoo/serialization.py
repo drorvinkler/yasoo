@@ -67,16 +67,16 @@ class Serializer:
         if globals:
             self._custom_serializers = resolve_types(self._custom_serializers, globals)
 
-        if isinstance(obj, list):
-            result = [
-                self._serialize(item, type_key, fully_qualified_types, inner=False)
-                for item in obj
-            ]
-        else:
-            result = self._serialize(obj, type_key, fully_qualified_types, inner=False)
+        result = self._serialize(obj, type_key, fully_qualified_types, inner=False)
         return _convert_to_json_serializable(result)
 
     def _serialize(self, obj, type_key, fully_qualified_types, inner=True):
+        if isinstance(obj, list):
+            return [
+                self._serialize(item, type_key, fully_qualified_types, inner=inner)
+                for item in obj
+            ]
+
         serialization_method = self._custom_serializers.get(type(obj))
         if serialization_method:
             result = serialization_method(obj)
