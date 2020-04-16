@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Dict, Sequence
 from unittest import TestCase
 
 from yasoo import deserialize
@@ -109,3 +109,35 @@ if DATACLASSES_EXIST:
             self.assertEqual(type(b), Bar)
             self.assertEqual(type(b.foo), Foo)
             self.assertEqual(b.foo.a, 5)
+
+        def test_dataclass_deserialization_with_generic_sequence_type_hint(self):
+            @dataclass
+            class Foo:
+                a: Any
+
+            @dataclass
+            class Bar:
+                foo: Sequence[Foo]
+
+            b = deserialize({'foo': [{'a': 5}]}, Bar, globals=locals())
+            self.assertIsInstance(b, Bar)
+            self.assertIsInstance(b.foo, list)
+            self.assertEqual(1, len(b.foo))
+            self.assertIsInstance(b.foo[0], Foo)
+            self.assertEqual(b.foo[0].a, 5)
+
+        def test_dataclass_deserialization_with_generic_dict_type_hint(self):
+            @dataclass
+            class Foo:
+                a: Any
+
+            @dataclass
+            class Bar:
+                foo: Dict[int, Foo]
+
+            b = deserialize({'foo': {0: {'a': 5}}}, Bar, globals=locals())
+            self.assertIsInstance(b, Bar)
+            self.assertIsInstance(b.foo, dict)
+            self.assertEqual(1, len(b.foo))
+            self.assertIsInstance(b.foo.get(0), Foo)
+            self.assertEqual(b.foo[0].a, 5)

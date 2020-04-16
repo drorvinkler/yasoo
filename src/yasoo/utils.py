@@ -1,4 +1,4 @@
-from typing import Dict, Any, Union, Type, List, Optional
+from typing import Dict, Any, Union, Type, List, Optional, Tuple
 
 import attr
 from attr.exceptions import NotAnAttrsClassError
@@ -7,6 +7,21 @@ try:
     import dataclasses
 except ModuleNotFoundError:
     dataclasses = None
+
+try:
+    # Python 3.6
+    from typing import GenericMeta as GenericType
+
+    def _get_origin(t: GenericType):
+        return t.__extra__
+
+
+except ImportError:
+    # Python >=3.7
+    from typing import _GenericAlias as GenericType
+
+    def _get_origin(t: GenericType):
+        return t.__origin__
 
 
 @attr.attrs
@@ -43,6 +58,20 @@ def get_fields(obj_type: Type) -> List[Field]:
 
 def normalize_method(method) -> callable:
     return method.__func__ if isinstance(method, staticmethod) else method
+
+
+def normalize_type(t: Union[type, GenericType]) -> Tuple[type, tuple]:
+    if isinstance(t, GenericType):
+        real_type = _get_origin(t)
+        generic_args = t.__args__
+    elif t is None or isinstance(t, type):
+        real_type = t
+        generic_args = tuple()
+    else:
+        raise TypeError(
+            f"Found type annotation {t}, which is not a type and not a generic."
+        )
+    return real_type, generic_args
 
 
 def is_obj_supported_primitive(obj):

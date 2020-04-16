@@ -19,6 +19,7 @@ from .utils import (
     resolve_types,
     get_fields,
     normalize_method,
+    normalize_type,
     is_obj_supported_primitive,
 )
 
@@ -87,6 +88,9 @@ class Deserializer:
         if is_obj_supported_primitive(data):
             return data
         if isinstance(data, list):
+            if obj_type is not None:
+                _, generic_args = normalize_type(obj_type)
+                obj_type = generic_args[0] if generic_args else None
             return [self._deserialize(d, obj_type, type_key, globals) for d in data]
 
         obj_type = self._get_object_type(obj_type, data, type_key, globals)
@@ -100,11 +104,15 @@ class Deserializer:
         try:
             fields = {f.name: f for f in get_fields(obj_type)}
         except TypeError:
-            if issubclass(obj_type, Enum):
+            real_type, generic_args = normalize_type(obj_type)
+            if issubclass(real_type, Enum):
                 return obj_type(data[ENUM_VALUE_KEY])
-            if issubclass(obj_type, Mapping):
-                return self._load_mapping(data, obj_type, type_key, globals)
-            if issubclass(obj_type, Iterable):
+            if issubclass(real_type, Mapping):
+                return self._load_mapping(
+                    data, real_type, generic_args, type_key, globals
+                )
+            if issubclass(real_type, Iterable):
+                # If we got here this means data is not a list, so obj_type came from the data itself and is safe to use
                 return self._load_iterable(data, obj_type, type_key, globals)
             raise
 
@@ -113,9 +121,13 @@ class Deserializer:
         self._load_inner_fields(data, fields, type_key, globals)
         return obj_type(**data)
 
-    def _load_mapping(self, data: Mapping, obj_type, type_key, globals):
+    def _load_mapping(self, data: Mapping, obj_type, generic_args, type_key, globals):
+        val_type = generic_args[1] if len(generic_args) > 1 else None
         return obj_type(
-            {k: self._deserialize(v, None, type_key, globals) for k, v in data.items()}
+            {
+                k: self._deserialize(v, val_type, type_key, globals)
+                for k, v in data.items()
+            }
         )
 
     def _load_iterable(self, data, obj_type, type_key, globals):

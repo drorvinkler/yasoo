@@ -1,9 +1,10 @@
+from typing import Sequence, Dict
 from unittest import TestCase
 
 from attr import attrs, attrib
+from yasoo import deserialize
 
 from tests.test_classes import AttrsClass
-from yasoo import deserialize
 
 
 class TestAttrsDeserialization(TestCase):
@@ -102,3 +103,35 @@ class TestAttrsDeserialization(TestCase):
         self.assertEqual(type(b), Bar)
         self.assertEqual(type(b.foo), Foo)
         self.assertEqual(b.foo.a, 5)
+
+    def test_attr_deserialization_with_generic_sequence_type_hint(self):
+        @attrs
+        class Foo:
+            a = attrib()
+
+        @attrs
+        class Bar:
+            foo: Sequence[Foo] = attrib()
+
+        b = deserialize({'foo': [{'a': 5}]}, Bar, globals=locals())
+        self.assertIsInstance(b, Bar)
+        self.assertIsInstance(b.foo, list)
+        self.assertEqual(1, len(b.foo))
+        self.assertIsInstance(b.foo[0], Foo)
+        self.assertEqual(b.foo[0].a, 5)
+
+    def test_attr_deserialization_with_generic_dict_type_hint(self):
+        @attrs
+        class Foo:
+            a = attrib()
+
+        @attrs
+        class Bar:
+            foo: Dict[int, Foo] = attrib()
+
+        b = deserialize({'foo': {0: {'a': 5}}}, Bar, globals=locals())
+        self.assertIsInstance(b, Bar)
+        self.assertIsInstance(b.foo, dict)
+        self.assertEqual(1, len(b.foo))
+        self.assertIsInstance(b.foo.get(0), Foo)
+        self.assertEqual(b.foo[0].a, 5)
