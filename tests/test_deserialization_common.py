@@ -2,9 +2,11 @@ from enum import Enum
 from unittest import TestCase
 
 from yasoo import deserialize, deserializer_of, deserializer
-from yasoo.constants import ENUM_VALUE_KEY
+from yasoo.constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
 
-from tests.test_classes import FooContainer
+from tests.test_classes import FooContainer, MyMapping
+
+_TYPE_KEY = '__type'
 
 
 class TestSerializationCommon(TestCase):
@@ -95,31 +97,72 @@ class TestSerializationCommon(TestCase):
         def deserialize_foo(_) -> Foo:
             return Foo()
 
-        type_key = '__type'
         list_len = 5
-        deserialized = deserialize([{type_key: 'Foo'} for _ in range(list_len)], type_key=type_key, globals=locals())
+        deserialized = deserialize([{_TYPE_KEY: 'Foo'} for _ in range(list_len)], type_key=_TYPE_KEY, globals=locals())
         self.assertIsInstance(deserialized, list)
         self.assertEqual(list_len, len(deserialized))
         for f in deserialized:
             self.assertIsInstance(f, Foo)
 
-    def test_deserialization_of_inner_list_of_primitives(self):
-        type_key = '__type'
-        list_len = 5
-        list_val = 1
-        deserialized = deserialize({
-            type_key: FooContainer.__name__,
-            'foo': [list_val] * list_len
-        },
-            type_key=type_key,
-            globals=dict(locals(), **globals()))
-        self.assertIsInstance(deserialized, FooContainer)
-        self.assertIsInstance(deserialized.foo, list)
-        self.assertEqual(list_len, len(deserialized.foo))
-        for f in deserialized.foo:
-            self.assertEqual(f, list_val)
+    def test_deserialization_of_inner_list_of_primitives_with_type_data(self):
+        self._check_deserialization_of_inner_iterable_of_primitives(list, True)
+
+    def test_deserialization_of_inner_set_of_primitives_with_type_data(self):
+        self._check_deserialization_of_inner_iterable_of_primitives(set, True)
+
+    def test_deserialization_of_inner_tuple_of_primitives_with_type_data(self):
+        self._check_deserialization_of_inner_iterable_of_primitives(tuple, True)
+
+    def test_deserialization_of_inner_list_of_primitives_without_type_data(self):
+        self._check_deserialization_of_inner_iterable_of_primitives(list, False)
+
+    def test_deserialization_of_inner_set_of_primitives_without_type_data(self):
+        self._check_deserialization_of_inner_iterable_of_primitives(set, False)
+
+    def test_deserialization_of_inner_tuple_of_primitives_without_type_data(self):
+        self._check_deserialization_of_inner_iterable_of_primitives(tuple, False)
 
     def test_deserialization_of_inner_list_of_classes(self):
+        self._check_deserialization_of_inner_iterable_of_classes(list)
+
+    def test_deserialization_of_inner_set_of_classes(self):
+        self._check_deserialization_of_inner_iterable_of_classes(set)
+
+    def test_deserialization_of_inner_tuple_of_classes(self):
+        self._check_deserialization_of_inner_iterable_of_classes(set)
+
+    def test_deserialization_of_inner_dict_of_primitives(self):
+        self._check_deserialization_of_inner_mapping_of_primitives(dict)
+
+    def test_deserialization_of_inner_custom_mapping_of_primitives(self):
+        self._check_deserialization_of_inner_mapping_of_primitives(MyMapping)
+
+    def test_deserialization_of_inner_dict_of_classes(self):
+        self._check_deserialization_of_inner_mapping_of_classes(dict)
+
+    def test_deserialization_of_inner_custom_mapping_of_classes(self):
+        self._check_deserialization_of_inner_mapping_of_classes(MyMapping)
+
+    def _check_deserialization_of_inner_iterable_of_primitives(self, iterable_type, include_type_data):
+        it = iterable_type(range(5))
+        foo = list(it)
+        if include_type_data:
+            foo = {_TYPE_KEY: iterable_type.__name__, ITERABLE_VALUE_KEY: foo}
+        deserialized = deserialize({
+            _TYPE_KEY: FooContainer.__name__,
+            'foo': foo
+        },
+            type_key=_TYPE_KEY,
+            globals=globals())
+        self.assertIsInstance(deserialized, FooContainer)
+        if include_type_data:
+            self.assertIsInstance(deserialized.foo, iterable_type)
+            self.assertEqual(it, deserialized.foo)
+        else:
+            self.assertIsInstance(deserialized.foo, list)
+            self.assertEqual(list(it), deserialized.foo)
+
+    def _check_deserialization_of_inner_iterable_of_classes(self, iterable_type):
         class Foo:
             pass
 
@@ -127,16 +170,48 @@ class TestSerializationCommon(TestCase):
         def deserialize_foo(_) -> Foo:
             return Foo()
 
-        type_key = '__type'
-        list_len = 5
+        it = [{_TYPE_KEY: 'Foo'} for _ in range(5)]
         deserialized = deserialize({
-            type_key: FooContainer.__name__,
-            'foo': [{type_key: 'Foo'} for _ in range(list_len)]
+            _TYPE_KEY: FooContainer.__name__,
+            'foo': {_TYPE_KEY: iterable_type.__name__, ITERABLE_VALUE_KEY: it}
         },
-            type_key=type_key,
+            type_key=_TYPE_KEY,
             globals=dict(locals(), **globals()))
         self.assertIsInstance(deserialized, FooContainer)
-        self.assertIsInstance(deserialized.foo, list)
-        self.assertEqual(list_len, len(deserialized.foo))
+        self.assertIsInstance(deserialized.foo, iterable_type)
+        self.assertEqual(len(it), len(deserialized.foo))
         for f in deserialized.foo:
             self.assertIsInstance(f, Foo)
+
+    def _check_deserialization_of_inner_mapping_of_primitives(self, mapping_type):
+        m = mapping_type({i: i**2 for i in range(5)})
+        deserialized = deserialize({
+            _TYPE_KEY: FooContainer.__name__,
+            'foo': dict(m, **{_TYPE_KEY: mapping_type.__name__})
+        },
+            type_key=_TYPE_KEY,
+            globals=globals())
+        self.assertIsInstance(deserialized, FooContainer)
+        self.assertIsInstance(deserialized.foo, mapping_type)
+        self.assertEqual(m, deserialized.foo)
+
+    def _check_deserialization_of_inner_mapping_of_classes(self, mapping_type):
+        class Foo:
+            pass
+
+        @deserializer
+        def deserialize_foo(_) -> Foo:
+            return Foo()
+
+        m = {i: {_TYPE_KEY: 'Foo'} for i in range(5)}
+        deserialized = deserialize({
+            _TYPE_KEY: FooContainer.__name__,
+            'foo': dict(m, **{_TYPE_KEY: mapping_type.__name__})
+        },
+            type_key=_TYPE_KEY,
+            globals=dict(locals(), **globals()))
+        self.assertIsInstance(deserialized, FooContainer)
+        self.assertIsInstance(deserialized.foo, mapping_type)
+        self.assertEqual(len(m), len(deserialized.foo))
+        for k in m.keys():
+            self.assertIsInstance(deserialized.foo[k], Foo)

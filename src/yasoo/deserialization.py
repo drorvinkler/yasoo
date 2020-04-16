@@ -2,9 +2,19 @@ import json
 from enum import Enum
 from importlib import import_module
 from inspect import signature
-from typing import Optional, Type, Union, Callable, Dict, Any, TypeVar
+from typing import (
+    Optional,
+    Type,
+    Union,
+    Callable,
+    Dict,
+    Any,
+    TypeVar,
+    Mapping,
+    Iterable,
+)
 
-from .constants import ENUM_VALUE_KEY
+from .constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
 from .utils import (
     resolve_types,
     get_fields,
@@ -76,7 +86,6 @@ class Deserializer:
     ):
         if is_obj_supported_primitive(data):
             return data
-
         if isinstance(data, list):
             return [self._deserialize(d, obj_type, type_key, globals) for d in data]
 
@@ -88,19 +97,35 @@ class Deserializer:
         if deserialization_method:
             return deserialization_method(data)
 
-        if issubclass(obj_type, Enum):
-            return obj_type(data[ENUM_VALUE_KEY])
+        try:
+            fields = {f.name: f for f in get_fields(obj_type)}
+        except TypeError:
+            if issubclass(obj_type, Enum):
+                return obj_type(data[ENUM_VALUE_KEY])
+            if issubclass(obj_type, Mapping):
+                return self._load_mapping(data, obj_type, type_key, globals)
+            if issubclass(obj_type, Iterable):
+                return self._load_iterable(data, obj_type, type_key, globals)
+            raise
 
-        fields = {f.name: f for f in get_fields(obj_type)}
         self._check_for_missing_fields(data, fields, obj_type)
         self._check_for_extraneous_fields(data, fields, obj_type)
         self._load_inner_fields(data, fields, type_key, globals)
         return obj_type(**data)
 
+    def _load_mapping(self, data: Mapping, obj_type, type_key, globals):
+        return obj_type(
+            {k: self._deserialize(v, None, type_key, globals) for k, v in data.items()}
+        )
+
+    def _load_iterable(self, data, obj_type, type_key, globals):
+        return obj_type(
+            self._deserialize(i, None, type_key, globals)
+            for i in data[ITERABLE_VALUE_KEY]
+        )
+
     def _load_inner_fields(self, data, fields, type_key, globals):
         for key, value in data.items():
-            if not isinstance(value, dict) and not isinstance(value, list):
-                continue
             field = fields[key]
             data[key] = self._deserialize(value, field.field_type, type_key, globals)
 
@@ -144,9 +169,27 @@ class Deserializer:
     @staticmethod
     def _get_type(type_name: str, globals: Optional[Dict[str, Any]]) -> Type:
         if "." not in type_name:
-            if type_name not in globals:
-                raise ValueError(f"type {type_name} not found in globals.")
-            return globals[type_name]
+            return Deserializer._get_non_fully_qualified_type(type_name, globals)
+        return Deserializer._get_fully_qualified_type(type_name)
+
+    @staticmethod
+    def _get_non_fully_qualified_type(
+        type_name: str, globals: Optional[Dict[str, Any]]
+    ) -> Type:
+        if type_name == "list":
+            return list
+        if type_name == "set":
+            return set
+        if type_name == "tuple":
+            return tuple
+        if type_name == "dict":
+            return dict
+        if type_name not in globals:
+            raise ValueError(f"type {type_name} not found in globals.")
+        return globals[type_name]
+
+    @staticmethod
+    def _get_fully_qualified_type(type_name):
         module_name = type_name[: type_name.rindex(".")]
         class_name = type_name[len(module_name) + 1 :]
         return getattr(import_module(module_name), class_name)

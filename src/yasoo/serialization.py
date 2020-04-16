@@ -3,7 +3,7 @@ from enum import Enum
 from inspect import signature
 from typing import Dict, Any, Union, Mapping, Iterable, Callable, Type, Optional
 
-from .constants import ENUM_VALUE_KEY
+from .constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
 from .utils import (
     resolve_types,
     get_fields,
@@ -46,6 +46,7 @@ class Serializer:
         obj,
         type_key: Optional[str] = "__type",
         fully_qualified_types: bool = True,
+        preserve_iterable_types: bool = False,
         globals: Optional[Dict[str, Any]] = None,
     ) -> Optional[Union[bool, int, float, str, list, Dict[str, Any]]]:
         """
@@ -57,6 +58,8 @@ class Serializer:
             Can be ``None`` to omit this key and rely on type hints when deserializing.
         :param fully_qualified_types: Whether to use fully qualified type names in the ``type_key``,
             i.e. whether to write "my_package.MyType" or just "MyType".
+        :param preserve_iterable_types: Whether to serialize iterables as dictionaries with their type
+            under ``type_key``, so they will be deserialized back to their type and not as a list.
         :param globals: If custom serialization methods were registered and used forward reference
             ('Foo' instead of Foo), this parameter should be a dictionary from type name to type, most easily
             acquired using the built-in ``globals()`` function.
@@ -67,16 +70,14 @@ class Serializer:
         if globals:
             self._custom_serializers = resolve_types(self._custom_serializers, globals)
 
-        result = self._serialize(obj, type_key, fully_qualified_types, inner=False)
+        result = self._serialize(
+            obj, type_key, fully_qualified_types, preserve_iterable_types, inner=False
+        )
         return _convert_to_json_serializable(result)
 
-    def _serialize(self, obj, type_key, fully_qualified_types, inner=True):
-        if isinstance(obj, list):
-            return [
-                self._serialize(item, type_key, fully_qualified_types, inner=inner)
-                for item in obj
-            ]
-
+    def _serialize(
+        self, obj, type_key, fully_qualified_types, preserve_iterable_types, inner=True
+    ):
         serialization_method = self._custom_serializers.get(type(obj))
         if serialization_method:
             result = serialization_method(obj)
@@ -85,7 +86,10 @@ class Serializer:
                 fields = get_fields(type(obj))
                 result = {
                     f.name: self._serialize(
-                        getattr(obj, f.name), type_key, fully_qualified_types,
+                        getattr(obj, f.name),
+                        type_key,
+                        fully_qualified_types,
+                        preserve_iterable_types,
                     )
                     for f in fields
                 }
@@ -93,6 +97,17 @@ class Serializer:
             except TypeError:
                 if isinstance(obj, Enum):
                     result = {ENUM_VALUE_KEY: obj.value}
+                elif isinstance(obj, Mapping):
+                    result = self._serialize_mapping(
+                        obj, type_key, fully_qualified_types, preserve_iterable_types
+                    )
+                elif isinstance(obj, Iterable) and not isinstance(obj, str):
+                    serialized = self._serialize_iterable(
+                        obj, type_key, fully_qualified_types, preserve_iterable_types
+                    )
+                    if type_key is None or not preserve_iterable_types:
+                        return serialized
+                    result = {ITERABLE_VALUE_KEY: serialized}
                 elif not inner:
                     raise
                 else:
@@ -106,6 +121,30 @@ class Serializer:
                 type_value = class_name
             result[type_key] = type_value
         return result
+
+    def _serialize_iterable(
+        self, obj: Iterable, type_key, fully_qualified_types, preserve_iterable_types
+    ):
+        return [
+            self._serialize(
+                item, type_key, fully_qualified_types, preserve_iterable_types
+            )
+            for item in obj
+        ]
+
+    def _serialize_mapping(
+        self, obj: Mapping, type_key, fully_qualified_types, preserve_iterable_types
+    ):
+        if any(not is_obj_supported_primitive(k) for k in obj.keys()):
+            raise ValueError(
+                f"Mapping {obj} contains a key which is not json-serializable"
+            )
+        return {
+            k: self._serialize(
+                v, type_key, fully_qualified_types, preserve_iterable_types
+            )
+            for k, v in obj.items()
+        }
 
     @staticmethod
     def _warn_for_possible_problems_in_deserialization(

@@ -1,1 +1,2 @@
 ENUM_VALUE_KEY = "value"
+ITERABLE_VALUE_KEY = "value"
