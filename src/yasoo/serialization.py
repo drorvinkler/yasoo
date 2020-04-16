@@ -83,17 +83,9 @@ class Serializer:
             result = serialization_method(obj)
         else:
             try:
-                fields = get_fields(type(obj))
-                result = {
-                    f.name: self._serialize(
-                        getattr(obj, f.name),
-                        type_key,
-                        fully_qualified_types,
-                        preserve_iterable_types,
-                    )
-                    for f in fields
-                }
-                self._warn_for_possible_problems_in_deserialization(obj, fields, result)
+                result = self._serialize_data_class(
+                    obj, type_key, fully_qualified_types, preserve_iterable_types
+                )
             except TypeError:
                 if isinstance(obj, Enum):
                     result = {ENUM_VALUE_KEY: obj.value}
@@ -114,12 +106,23 @@ class Serializer:
                     return obj
 
         if type_key is not None:
-            class_name = obj.__class__.__name__
-            if fully_qualified_types:
-                type_value = ".".join((obj.__class__.__module__, class_name))
-            else:
-                type_value = class_name
-            result[type_key] = type_value
+            self._add_type_data(result, obj, type_key, fully_qualified_types)
+        return result
+
+    def _serialize_data_class(
+        self, obj, type_key, fully_qualified_types, preserve_iterable_types
+    ):
+        fields = get_fields(type(obj))
+        result = {
+            f.name: self._serialize(
+                getattr(obj, f.name),
+                type_key,
+                fully_qualified_types,
+                preserve_iterable_types,
+            )
+            for f in fields
+        }
+        self._warn_for_possible_problems_in_deserialization(obj, fields, result)
         return result
 
     def _serialize_iterable(
@@ -173,6 +176,15 @@ class Serializer:
                 _logger.warning(
                     f'Field "{f.name}" in obj "{obj.__class__.__name__}" has a converter'
                 )
+
+    @staticmethod
+    def _add_type_data(data, obj, type_key, fully_qualified_types):
+        class_name = obj.__class__.__name__
+        if fully_qualified_types:
+            type_value = ".".join((obj.__class__.__module__, class_name))
+        else:
+            type_value = class_name
+        data[type_key] = type_value
 
 
 def _convert_to_json_serializable(obj) -> Union[int, float, str, list, dict, None]:
