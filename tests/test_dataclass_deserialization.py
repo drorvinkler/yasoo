@@ -1,4 +1,4 @@
-from typing import Any, Dict, Sequence
+from typing import Any, Dict, Sequence, Tuple
 from unittest import TestCase
 
 from yasoo import deserialize
@@ -125,6 +125,23 @@ if DATACLASSES_EXIST:
             self.assertEqual(1, len(b.foo))
             self.assertIsInstance(b.foo[0], Foo)
             self.assertEqual(b.foo[0].a, 5)
+
+        def test_dataclass_deserialization_with_generic_tuple_type_hint(self):
+            @dataclass
+            class Foo:
+                a: Any
+
+            @dataclass
+            class Bar:
+                foo: Tuple[Foo]
+
+            b = deserialize({'foo': [{'a': 5}]}, Bar, globals=locals())
+            self.assertIsInstance(b, Bar)
+            self.assertIsInstance(b.foo, tuple)
+            self.assertEqual(1, len(b.foo))
+            self.assertIsInstance(b.foo[0], Foo)
+            self.assertEqual(b.foo[0].a, 5)
+
 
         def test_dataclass_deserialization_with_generic_dict_type_hint(self):
             @dataclass
