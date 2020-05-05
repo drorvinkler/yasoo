@@ -88,11 +88,13 @@ class Deserializer:
     ):
         if is_obj_supported_primitive(data):
             return data
+        real_type = None
         if isinstance(data, list):
             if obj_type is not None:
-                _, generic_args = normalize_type(obj_type)
+                real_type, generic_args = normalize_type(obj_type)
                 obj_type = generic_args[0] if generic_args else None
-            return [self._deserialize(d, obj_type, type_key, globals) for d in data]
+            type_to_instantiate = real_type if real_type and not inspect.isabstract(real_type) else list
+            return type_to_instantiate(self._deserialize(d, obj_type, type_key, globals) for d in data)
 
         obj_type = self._get_object_type(obj_type, data, type_key, globals)
         if type_key in data:
