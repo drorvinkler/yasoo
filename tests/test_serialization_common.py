@@ -5,7 +5,7 @@ from unittest import TestCase
 from yasoo import serialize, serializer, serializer_of
 from yasoo.constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
 
-from tests.test_classes import FooContainer, MyMapping
+from tests.test_classes import FooContainer, MyMapping, MyIterable
 
 _TYPE_KEY = '__type'
 
@@ -144,29 +144,20 @@ class TestSerializationCommon(TestCase):
     def test_serialization_of_inner_list_of_primitives_without_preservation(self):
         self._check_serialization_of_inner_iterable_of_primitives(list, False)
 
-    def test_serialization_of_inner_set_of_primitives_without_preservation(self):
-        self._check_serialization_of_inner_iterable_of_primitives(set, False)
-
-    def test_serialization_of_inner_tuple_of_primitives_without_preservation(self):
-        self._check_serialization_of_inner_iterable_of_primitives(tuple, False)
+    def test_serialization_of_inner_iterable_of_primitives_without_preservation(self):
+        self._check_serialization_of_inner_iterable_of_primitives(MyIterable, False)
 
     def test_serialization_of_inner_list_of_primitives_with_preservation(self):
         self._check_serialization_of_inner_iterable_of_primitives(list, True)
 
-    def test_serialization_of_inner_set_of_primitives_with_preservation(self):
-        self._check_serialization_of_inner_iterable_of_primitives(set, True)
-
-    def test_serialization_of_inner_tuple_of_primitives_with_preservation(self):
-        self._check_serialization_of_inner_iterable_of_primitives(tuple, True)
+    def test_serialization_of_inner_iterable_of_primitives_with_preservation(self):
+        self._check_serialization_of_inner_iterable_of_primitives(MyIterable, True)
 
     def test_serialization_of_inner_list_of_classes(self):
         self._check_serialization_of_inner_iterable_of_classes(list)
 
-    def test_serialization_of_inner_set_of_classes(self):
-        self._check_serialization_of_inner_iterable_of_classes(set)
-
-    def test_serialization_of_inner_tuple_of_classes(self):
-        self._check_serialization_of_inner_iterable_of_classes(tuple)
+    def test_serialization_of_inner_iterable_of_classes(self):
+        self._check_serialization_of_inner_iterable_of_classes(MyIterable)
 
     def test_serialization_of_inner_dict_of_primitives(self):
         self._check_serialization_of_inner_mapping_of_primitives(dict)
@@ -188,9 +179,18 @@ class TestSerializationCommon(TestCase):
                           globals=globals())
 
     def _check_serialization_of_inner_iterable_of_primitives(self, iterable_type, preserve_iterable_types):
-        it = iterable_type(range(5))
+        self._check_serialization_of_inner_iterable_of_primitives_with_given_type_key(iterable_type, preserve_iterable_types, _TYPE_KEY)
+        self._check_serialization_of_inner_iterable_of_primitives_with_given_type_key(iterable_type, preserve_iterable_types, None)
+
+    def _check_serialization_of_inner_iterable_of_classes(self, iterable_type):
+        self._check_serialization_of_inner_iterable_of_classes_with_given_type_key(iterable_type, _TYPE_KEY)
+        self._check_serialization_of_inner_iterable_of_classes_with_given_type_key(iterable_type, None)
+
+    def _check_serialization_of_inner_iterable_of_primitives_with_given_type_key(self, iterable_type, preserve_iterable_types, type_key):
+        size = 5
+        it = iterable_type(range(size))
         s = serialize(FooContainer(foo=it),
-                      type_key=_TYPE_KEY,
+                      type_key=type_key,
                       fully_qualified_types=False,
                       preserve_iterable_types=preserve_iterable_types,
                       globals=locals())
@@ -198,19 +198,20 @@ class TestSerializationCommon(TestCase):
         self.assertIn('foo', s)
 
         foo = s['foo']
-        if preserve_iterable_types:
+        if preserve_iterable_types and iterable_type != list:
             self.assertIsInstance(foo, dict)
-            self.assertEqual(iterable_type.__name__, foo.get(_TYPE_KEY))
+            if type_key is not None:
+                self.assertEqual(iterable_type.__name__, foo.get(type_key))
             foo = foo.get(ITERABLE_VALUE_KEY)
 
         self.assertIsInstance(foo, list)
-        self.assertEqual(len(it), len(foo))
+        self.assertEqual(size, len(foo))
         if issubclass(iterable_type, Sequence):
             self.assertEqual(list(it), list(foo))
         else:
             self.assertEqual(set(it), set(foo))
 
-    def _check_serialization_of_inner_iterable_of_classes(self, iterable_type):
+    def _check_serialization_of_inner_iterable_of_classes_with_given_type_key(self, iterable_type, type_key):
         class Foo:
             pass
 
@@ -218,9 +219,10 @@ class TestSerializationCommon(TestCase):
         def deserialize_foo(_: Foo):
             return {}
 
-        it = iterable_type(Foo() for _ in range(5))
+        size = 5
+        it = iterable_type(Foo() for _ in range(size))
         s = serialize(FooContainer(foo=it),
-                      type_key=_TYPE_KEY,
+                      type_key=type_key,
                       fully_qualified_types=False,
                       globals=locals())
         self.assertIsInstance(s, dict)
@@ -228,9 +230,10 @@ class TestSerializationCommon(TestCase):
 
         foo = s['foo']
         self.assertIsInstance(foo, list)
-        self.assertEqual(len(it), len(foo))
-        for d in foo:
-            self.assertEqual({_TYPE_KEY: 'Foo'}, d)
+        self.assertEqual(size, len(foo))
+        if type_key is not None:
+            for d in foo:
+                self.assertEqual({type_key: 'Foo'}, d)
 
     def _check_serialization_of_inner_mapping_of_primitives(self, mapping_type):
         m = mapping_type({i: i**2 for i in range(5)})

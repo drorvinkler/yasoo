@@ -1,4 +1,4 @@
-from collections import Mapping
+from collections import Mapping, Iterable
 
 from attr import attrs, attrib
 
@@ -11,6 +11,15 @@ class AttrsClass:
 @attrs
 class FooContainer:
     foo = attrib()
+
+
+class MyIterable(Iterable):
+    def __init__(self, it) -> None:
+        super().__init__()
+        self._data = list(it)
+
+    def __iter__(self):
+        return self._data.__iter__()
 
 
 class MyMapping(Mapping):

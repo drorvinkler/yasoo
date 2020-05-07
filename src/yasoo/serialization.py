@@ -102,7 +102,7 @@ class Serializer:
                     serialized = self._serialize_iterable(
                         obj, type_key, fully_qualified_types, preserve_iterable_types
                     )
-                    if type_key is None or not preserve_iterable_types:
+                    if isinstance(obj, list) or not preserve_iterable_types:
                         return serialized
                     result = {ITERABLE_VALUE_KEY: serialized}
                 elif not inner:
