@@ -3,6 +3,8 @@ from enum import Enum
 from inspect import signature
 from typing import Dict, Any, Union, Mapping, Iterable, Callable, Type, Optional
 
+from yasoo.utils import normalize_type
+
 from .constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
 from .utils import (
     resolve_types,
@@ -19,6 +21,7 @@ class Serializer:
     def __init__(self) -> None:
         super().__init__()
         self._custom_serializers = {}
+        self._warnings = set()
 
     def register(self, type_to_register: Optional[Type] = None):
         """
@@ -73,7 +76,9 @@ class Serializer:
         result = self._serialize(
             obj, type_key, fully_qualified_types, preserve_iterable_types, inner=False
         )
-        return _convert_to_json_serializable(result)
+        result = _convert_to_json_serializable(result)
+        self._emit_warnings()
+        return result
 
     def _serialize(
         self, obj, type_key, fully_qualified_types, preserve_iterable_types, inner=True
@@ -122,7 +127,9 @@ class Serializer:
             )
             for f in fields
         }
-        self._warn_for_possible_problems_in_deserialization(obj, fields, result)
+        self._warn_for_possible_problems_in_deserialization(
+            obj, fields, result, type_key is not None
+        )
         return result
 
     def _serialize_iterable(
@@ -149,33 +156,78 @@ class Serializer:
             for k, v in obj.items()
         }
 
-    @staticmethod
     def _warn_for_possible_problems_in_deserialization(
-        obj, fields: Iterable[Field], data: Dict[str, Any],
+        self,
+        obj,
+        fields: Iterable[Field],
+        data: Dict[str, Any],
+        type_key_present: bool,
     ) -> None:
         for f in fields:
-            try:
-                value = data[f.name]
-                if f.converter is not None:
-                    value = f.converter(value)
-            except:
-                _logger.warning(
-                    f'Field "{f.name}" in obj "{obj.__class__.__name__}" has value {data[f.name]} that could not be converted using its converter'
-                )
-                continue
+            value = data[f.name]
+            if not type_key_present:
+                self._check_for_unknown_dicts(f, value, obj.__class__.__name__)
+            self._check_for_unconvertables_or_invalid(
+                obj, f, value, obj.__class__.__name__
+            )
 
-            if f.validator is not None and not isinstance(data[f.name], dict):
-                try:
-                    f.validator(obj, f, value)
-                except:
-                    _logger.warning(
-                        f'Field "{f.name}" in obj "{obj.__class__.__name__}" has value {value} that doesn\'t match this field\'s validator'
-                    )
-                    continue
-            if f.converter is not None:
-                _logger.warning(
-                    f'Field "{f.name}" in obj "{obj.__class__.__name__}" has a converter'
+    def _check_for_unknown_dicts(self, f, value, obj_class_name):
+        try:
+            real_type, generic_args = normalize_type(f.field_type)
+        except TypeError:
+            real_type = generic_args = None
+
+        if isinstance(value, list) and value:
+            value = value[0]
+            real_type = generic_args[0] if generic_args else None
+
+        if not isinstance(value, dict):
+            return
+
+        if real_type is None:
+            self._add_warning(
+                f'Field "{f.name}" in obj "{obj_class_name}" is a dict or an instance and has no type hint'
+            )
+        else:
+            try:
+                if not issubclass(real_type, Mapping):
+                    get_fields(real_type)
+            except TypeError:
+                self._add_warning(
+                    f'Field "{f.name}" in obj "{obj_class_name}" is a dict or an instance but its type hint is an unsupported class. Make sure you register a deserializer'
                 )
+
+    def _check_for_unconvertables_or_invalid(self, obj, f, value, obj_class_name):
+        if f.converter is not None and not isinstance(value, dict):
+            try:
+                value = f.converter(value)
+            except:
+                self._add_warning(
+                    f'Field "{f.name}" in obj "{obj_class_name}" has value {value} that could not be converted using its converter'
+                )
+                return
+
+        if f.validator is not None and not isinstance(value, dict):
+            try:
+                f.validator(obj, f, value)
+            except:
+                self._add_warning(
+                    f'Field "{f.name}" in obj "{obj.__class__.__name__}" has value {value} that doesn\'t match this field\'s validator'
+                )
+                return
+
+        if f.converter is not None:
+            self._add_warning(
+                f'Field "{f.name}" in obj "{obj.__class__.__name__}" has a converter'
+            )
+
+    def _add_warning(self, warning):
+        self._warnings.add(warning)
+
+    def _emit_warnings(self):
+        for w in self._warnings:
+            _logger.warning(w)
+        self._warnings.clear()
 
     @staticmethod
     def _add_type_data(data, obj, type_key, fully_qualified_types):

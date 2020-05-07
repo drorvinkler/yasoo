@@ -119,3 +119,43 @@ class TestAttrsSerialization(TestCase):
         self.assertEqual(1, len(cm.records))
         self.assertEqual(logging.WARNING, cm.records[0].levelno)
         self.assertIn('value', cm.records[0].msg)
+
+    def test_attr_warning_on_dict_without_type_hint_and_no_type_key(self):
+        @attrs
+        class Foo:
+            bar = attrib()
+
+        f = Foo({1: 5})
+        with self.assertLogs(_logger.name, logging.WARNING) as cm:
+            serialize(f, type_key=None)
+        self.assertEqual(1, len(cm.records))
+        self.assertEqual(logging.WARNING, cm.records[0].levelno)
+        self.assertIn('no type hint', cm.records[0].msg)
+
+    def test_attr_warning_on_dict_with_unsupported_type_hint_and_no_type_key(self):
+        class Unsupported:
+            pass
+
+        @attrs
+        class Foo:
+            bar = attrib(type=Unsupported)
+
+        f = Foo({1: 5})
+        with self.assertLogs(_logger.name, logging.WARNING) as cm:
+            serialize(f, type_key=None)
+        self.assertEqual(1, len(cm.records))
+        self.assertEqual(logging.WARNING, cm.records[0].levelno)
+        self.assertIn('unsupported', cm.records[0].msg)
+
+    def test_attr_no_warning_on_dict_with_dict_type_hint_and_no_type_key(self):
+        @attrs
+        class Foo:
+            bar = attrib(type=dict)
+
+        f = Foo({1: 5})
+        try:
+            with self.assertLogs(_logger.name, logging.WARNING) as cm:
+                serialize(f, type_key=None)
+        except AssertionError:
+            return
+        self.fail()
