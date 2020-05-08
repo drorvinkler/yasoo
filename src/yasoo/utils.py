@@ -61,6 +61,8 @@ def normalize_method(method) -> callable:
 
 
 def normalize_type(t: Union[type, GenericType]) -> Tuple[type, tuple]:
+    if t == Any:
+        t = None
     if isinstance(t, GenericType):
         real_type = _get_origin(t)
         generic_args = t.__args__
