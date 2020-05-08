@@ -1,4 +1,4 @@
-import logging
+import warnings
 from enum import Enum
 from inspect import signature
 from typing import Dict, Any, Union, Mapping, Iterable, Callable, Type, Optional
@@ -14,14 +14,11 @@ from .utils import (
     is_obj_supported_primitive,
 )
 
-_logger = logging.getLogger(__name__)
-
 
 class Serializer:
     def __init__(self) -> None:
         super().__init__()
         self._custom_serializers = {}
-        self._warnings = set()
 
     def register(self, type_to_register: Optional[Type] = None):
         """
@@ -77,7 +74,6 @@ class Serializer:
             obj, type_key, fully_qualified_types, preserve_iterable_types, inner=False
         )
         result = _convert_to_json_serializable(result)
-        self._emit_warnings()
         return result
 
     def _serialize(
@@ -156,22 +152,20 @@ class Serializer:
             for k, v in obj.items()
         }
 
+    @classmethod
     def _warn_for_possible_problems_in_deserialization(
-        self,
-        obj,
-        fields: Iterable[Field],
-        data: Dict[str, Any],
-        type_key_present: bool,
+        cls, obj, fields: Iterable[Field], data: Dict[str, Any], type_key_present: bool,
     ) -> None:
         for f in fields:
             value = data[f.name]
             if not type_key_present:
-                self._check_for_unknown_dicts(f, value, obj.__class__.__name__)
-            self._check_for_unconvertables_or_invalid(
+                cls._check_for_unknown_dicts(f, value, obj.__class__.__name__)
+            cls._check_for_unconvertables_or_invalid(
                 obj, f, value, obj.__class__.__name__
             )
 
-    def _check_for_unknown_dicts(self, f, value, obj_class_name):
+    @classmethod
+    def _check_for_unknown_dicts(cls, f, value, obj_class_name):
         try:
             real_type, generic_args = normalize_type(f.field_type)
         except TypeError:
@@ -185,24 +179,27 @@ class Serializer:
             return
 
         if real_type is None:
-            self._add_warning(
+            cls._warn(
                 f'Field "{f.name}" in obj "{obj_class_name}" is a dict or an instance and has no type hint'
             )
         else:
             try:
-                if not issubclass(real_type, Mapping):
+                if not issubclass(real_type, Mapping) and not issubclass(
+                    real_type, Iterable
+                ):
                     get_fields(real_type)
             except TypeError:
-                self._add_warning(
+                cls._warn(
                     f'Field "{f.name}" in obj "{obj_class_name}" is a dict or an instance but its type hint is an unsupported class. Make sure you register a deserializer'
                 )
 
-    def _check_for_unconvertables_or_invalid(self, obj, f, value, obj_class_name):
+    @classmethod
+    def _check_for_unconvertables_or_invalid(cls, obj, f, value, obj_class_name):
         if f.converter is not None and not isinstance(value, dict):
             try:
                 value = f.converter(value)
             except:
-                self._add_warning(
+                cls._warn(
                     f'Field "{f.name}" in obj "{obj_class_name}" has value {value} that could not be converted using its converter'
                 )
                 return
@@ -211,23 +208,15 @@ class Serializer:
             try:
                 f.validator(obj, f, value)
             except:
-                self._add_warning(
+                cls._warn(
                     f'Field "{f.name}" in obj "{obj.__class__.__name__}" has value {value} that doesn\'t match this field\'s validator'
                 )
                 return
 
         if f.converter is not None:
-            self._add_warning(
+            cls._warn(
                 f'Field "{f.name}" in obj "{obj.__class__.__name__}" has a converter'
             )
-
-    def _add_warning(self, warning):
-        self._warnings.add(warning)
-
-    def _emit_warnings(self):
-        for w in self._warnings:
-            _logger.warning(w)
-        self._warnings.clear()
 
     @staticmethod
     def _add_type_data(data, obj, type_key, fully_qualified_types):
@@ -237,6 +226,10 @@ class Serializer:
         else:
             type_value = class_name
         data[type_key] = type_value
+
+    @staticmethod
+    def _warn(warning):
+        warnings.warn(warning, RuntimeWarning, stacklevel=2)
 
 
 def _convert_to_json_serializable(obj) -> Union[int, float, str, list, dict, None]:

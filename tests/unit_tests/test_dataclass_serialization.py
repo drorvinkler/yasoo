@@ -1,10 +1,8 @@
 import json
-import logging
 from typing import Any
 from unittest import TestCase
 
 from yasoo import serialize
-from yasoo.serialization import _logger
 
 try:
     from dataclasses import dataclass, field
@@ -59,11 +57,8 @@ if DATACLASSES_EXIST:
                 bar: Any
 
             f = Foo({1: 5})
-            with self.assertLogs(_logger.name, logging.WARNING) as cm:
+            with self.assertWarnsRegex(RuntimeWarning, expected_regex='.*no type hint.*'):
                 serialize(f, type_key=None)
-            self.assertEqual(1, len(cm.records))
-            self.assertEqual(logging.WARNING, cm.records[0].levelno)
-            self.assertIn('no type hint', cm.records[0].msg)
 
         def test_dataclass_warning_on_dict_with_unsupported_type_hint_and_no_type_key(self):
             class Unsupported:
@@ -74,11 +69,8 @@ if DATACLASSES_EXIST:
                 bar: Unsupported
 
             f = Foo({1: 5})
-            with self.assertLogs(_logger.name, logging.WARNING) as cm:
+            with self.assertWarnsRegex(RuntimeWarning, expected_regex='.*unsupported class.*'):
                 serialize(f, type_key=None)
-            self.assertEqual(1, len(cm.records))
-            self.assertEqual(logging.WARNING, cm.records[0].levelno)
-            self.assertIn('unsupported', cm.records[0].msg)
 
         def test_dataclass_no_warning_on_dict_with_dict_type_hint_and_no_type_key(self):
             @dataclass
@@ -87,7 +79,7 @@ if DATACLASSES_EXIST:
 
             f = Foo({1: 5})
             try:
-                with self.assertLogs(_logger.name, logging.WARNING) as cm:
+                with self.assertWarns(Warning):
                     serialize(f, type_key=None)
             except AssertionError:
                 return

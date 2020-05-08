@@ -1,11 +1,9 @@
 import json
-import logging
 from unittest import TestCase
 
 from attr import attrs, attrib
 from attr.validators import instance_of
 from yasoo import serialize
-from yasoo.serialization import _logger
 
 
 class TestAttrsSerialization(TestCase):
@@ -53,10 +51,8 @@ class TestAttrsSerialization(TestCase):
 
         f = Foo(5)
         f.bar = 'a'
-        with self.assertLogs(_logger.name, logging.WARNING) as cm:
+        with self.assertWarnsRegex(RuntimeWarning, expected_regex='.*validator.*'):
             serialize(f)
-        self.assertEqual(1, len(cm.records))
-        self.assertEqual(logging.WARNING, cm.records[0].levelno)
 
     def test_attr_warning_on_validator_mismatch_with_converter(self):
         @attrs
@@ -65,31 +61,24 @@ class TestAttrsSerialization(TestCase):
 
         f = Foo(5)
         f.bar = 'a'
-        with self.assertLogs(_logger.name, logging.WARNING) as cm:
+        with self.assertWarnsRegex(RuntimeWarning, expected_regex='.*validator.*'):
             serialize(f)
-        self.assertEqual(1, len(cm.records))
-        self.assertEqual(logging.WARNING, cm.records[0].levelno)
-        self.assertTrue('validator' in cm.records[0].msg)
 
     def test_attr_warning_on_converter(self):
         @attrs
         class Foo:
             bar = attrib(converter=lambda x: x)
 
-        with self.assertLogs(_logger.name, logging.WARNING) as cm:
+        with self.assertWarnsRegex(RuntimeWarning, expected_regex='.*converter.*'):
             serialize(Foo(5))
-        self.assertEqual(1, len(cm.records))
-        self.assertEqual(logging.WARNING, cm.records[0].levelno)
 
     def test_attr_warning_on_converter_validator_valid(self):
         @attrs
         class Foo:
             bar = attrib(validator=instance_of(int), converter=lambda x: x)
 
-        with self.assertLogs(_logger.name, logging.WARNING) as cm:
+        with self.assertWarnsRegex(RuntimeWarning, expected_regex='.*converter.*'):
             serialize(Foo(5))
-        self.assertEqual(1, len(cm.records))
-        self.assertEqual(logging.WARNING, cm.records[0].levelno)
 
     def test_attr_no_warning_on_validator_mismatch_for_complex_value(self):
         @attrs
@@ -101,7 +90,7 @@ class TestAttrsSerialization(TestCase):
             foo = attrib(validator=instance_of(Foo))
 
         try:
-            with self.assertLogs(_logger.name, logging.WARNING):
+            with self.assertWarns(Warning):
                 serialize(Bar(Foo(5)))
         except AssertionError:
             return
@@ -114,11 +103,8 @@ class TestAttrsSerialization(TestCase):
 
         f = Foo(5)
         f.bar = 0
-        with self.assertLogs(_logger.name, logging.WARNING) as cm:
+        with self.assertWarnsRegex(RuntimeWarning, expected_regex='.*value.*'):
             serialize(f)
-        self.assertEqual(1, len(cm.records))
-        self.assertEqual(logging.WARNING, cm.records[0].levelno)
-        self.assertIn('value', cm.records[0].msg)
 
     def test_attr_warning_on_dict_without_type_hint_and_no_type_key(self):
         @attrs
@@ -126,11 +112,8 @@ class TestAttrsSerialization(TestCase):
             bar = attrib()
 
         f = Foo({1: 5})
-        with self.assertLogs(_logger.name, logging.WARNING) as cm:
+        with self.assertWarnsRegex(RuntimeWarning, expected_regex='.*no type hint.*'):
             serialize(f, type_key=None)
-        self.assertEqual(1, len(cm.records))
-        self.assertEqual(logging.WARNING, cm.records[0].levelno)
-        self.assertIn('no type hint', cm.records[0].msg)
 
     def test_attr_warning_on_dict_with_unsupported_type_hint_and_no_type_key(self):
         class Unsupported:
@@ -141,11 +124,8 @@ class TestAttrsSerialization(TestCase):
             bar = attrib(type=Unsupported)
 
         f = Foo({1: 5})
-        with self.assertLogs(_logger.name, logging.WARNING) as cm:
+        with self.assertWarnsRegex(RuntimeWarning, expected_regex='.*unsupported class.*'):
             serialize(f, type_key=None)
-        self.assertEqual(1, len(cm.records))
-        self.assertEqual(logging.WARNING, cm.records[0].levelno)
-        self.assertIn('unsupported', cm.records[0].msg)
 
     def test_attr_no_warning_on_dict_with_dict_type_hint_and_no_type_key(self):
         @attrs
@@ -154,7 +134,7 @@ class TestAttrsSerialization(TestCase):
 
         f = Foo({1: 5})
         try:
-            with self.assertLogs(_logger.name, logging.WARNING) as cm:
+            with self.assertWarns(Warning):
                 serialize(f, type_key=None)
         except AssertionError:
             return
