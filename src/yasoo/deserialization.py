@@ -76,14 +76,14 @@ class Deserializer:
                 self._custom_deserializers, globals
             )
 
-        return self._deserialize(data, obj_type, type_key, globals)
+        return self._deserialize(data, obj_type, type_key, globals or {})
 
     def _deserialize(
         self,
         data: Optional[Union[bool, int, float, str, list, Dict[str, Any]]],
         obj_type: Optional[Type[T]],
         type_key: Optional[str],
-        globals: Optional[Dict[str, Any]],
+        globals: Dict[str, Any],
     ):
         if is_obj_supported_primitive(data):
             return data
@@ -168,7 +168,7 @@ class Deserializer:
         obj_type: Optional[Type[T]],
         data: Dict[str, Any],
         type_key: str,
-        globals: Optional[Dict[str, Any]],
+        globals: Dict[str, Any],
     ) -> Type:
         if type_key in data:
             return Deserializer._get_type(data[type_key], globals)
@@ -179,15 +179,13 @@ class Deserializer:
         return obj_type
 
     @staticmethod
-    def _get_type(type_name: str, globals: Optional[Dict[str, Any]]) -> Type:
+    def _get_type(type_name: str, globals: Dict[str, Any]) -> Type:
         if "." not in type_name:
             return Deserializer._get_non_fully_qualified_type(type_name, globals)
         return Deserializer._get_fully_qualified_type(type_name)
 
     @staticmethod
-    def _get_non_fully_qualified_type(
-        type_name: str, globals: Optional[Dict[str, Any]]
-    ) -> Type:
+    def _get_non_fully_qualified_type(type_name: str, globals: Dict[str, Any]) -> Type:
         if type_name == "list":
             return list
         if type_name == "set":
