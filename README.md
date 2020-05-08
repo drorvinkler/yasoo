@@ -80,9 +80,9 @@ If you want to avoid having the `__type` key in your serialized data, you can se
 For this to work all fields in the serialized class that are not json-serializable should have a type hint.
 #### Serializing Sequences
 By default all sequences found in the data will be converted to `list` in the serialization process.
-If you want to be able to deserialize them back to anything other than a list, either use a type hint or set the `preserve_iterable_types` parameter to `True` and the `type_key` parameter as not `None` when calling `serialize`.
+If you want to be able to deserialize them back to anything other than a list, set the `preserve_iterable_types` parameter to `True` when calling `serialize`.
 
-Note: setting the `preserve_iterable_types` parameter to `True` will cause all sequences to be serialized as dictionaries with their type saved under the `type_key`.
+Note: setting the `preserve_iterable_types` parameter to `True` will cause all iterables that are not `list` to be serialized as dictionaries with their type saved under the `type_key`.
 #### Multiple Serialization Methods For The Same Type
 If you want to define a custom serialization method for a type for a specific use case, without affecting the default serializer, you can create another instance of `Serializer` and register the method on that instance. For example:
 ```
