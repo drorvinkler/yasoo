@@ -14,9 +14,11 @@ class FooContainer:
 
 
 class MyIterable(Iterable):
-    def __init__(self, it) -> None:
+    def __init__(self, *args) -> None:
         super().__init__()
-        self._data = list(it)
+        if len(args) == 1 and isinstance(args[0], Iterable):
+            args = args[0]
+        self._data = list(args)
 
     def __iter__(self):
         return self._data.__iter__()
