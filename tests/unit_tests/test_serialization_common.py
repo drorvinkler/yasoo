@@ -48,7 +48,7 @@ class TestSerializationCommon(TestCase):
             def func(_):
                 return {'foo': 'bar'}
 
-        s = serialize(Foo(), globals=locals())
+        s = serialize(Foo())
         self.assertEqual(s.get('foo'), 'bar')
 
     def test_serializer_registration_forward_ref(self):
@@ -69,7 +69,7 @@ class TestSerializationCommon(TestCase):
         def func(_: Foo):
             return {'foo': 'bar'}
 
-        s = serialize(Foo(), globals=locals())
+        s = serialize(Foo())
         self.assertEqual(s.get('foo'), 'bar')
 
     def test_serializer_registration_type_hint_forward_ref(self):
@@ -113,8 +113,7 @@ class TestSerializationCommon(TestCase):
         list_len = 5
         s = serialize([Foo() for _ in range(list_len)],
                       type_key=type_key,
-                      fully_qualified_types=False,
-                      globals=locals())
+                      fully_qualified_types=False)
         self.assertIsInstance(s, list)
         self.assertEqual(list_len, len(s))
         for d in s:
@@ -132,8 +131,7 @@ class TestSerializationCommon(TestCase):
         d = {i: Foo() for i in range(5)}
         s = serialize(d,
                       type_key=type_key,
-                      fully_qualified_types=False,
-                      globals=locals())
+                      fully_qualified_types=False)
         self.assertIsInstance(s, dict)
         self.assertEqual('dict', s.get(type_key))
         s.pop(type_key)
@@ -175,8 +173,7 @@ class TestSerializationCommon(TestCase):
         d = {(i,): i for i in range(5)}
         self.assertRaises(ValueError,
                           serialize,
-                          obj=FooContainer(foo=d),
-                          globals=globals())
+                          obj=FooContainer(foo=d))
 
     def _check_serialization_of_inner_iterable_of_primitives(self, iterable_type, preserve_iterable_types):
         self._check_serialization_of_inner_iterable_of_primitives_with_given_type_key(iterable_type, preserve_iterable_types, _TYPE_KEY)
@@ -192,8 +189,7 @@ class TestSerializationCommon(TestCase):
         s = serialize(FooContainer(foo=it),
                       type_key=type_key,
                       fully_qualified_types=False,
-                      preserve_iterable_types=preserve_iterable_types,
-                      globals=locals())
+                      preserve_iterable_types=preserve_iterable_types)
         self.assertIsInstance(s, dict)
         self.assertIn('foo', s)
 
@@ -223,8 +219,7 @@ class TestSerializationCommon(TestCase):
         it = iterable_type(Foo() for _ in range(size))
         s = serialize(FooContainer(foo=it),
                       type_key=type_key,
-                      fully_qualified_types=False,
-                      globals=locals())
+                      fully_qualified_types=False)
         self.assertIsInstance(s, dict)
         self.assertIn('foo', s)
 
@@ -239,8 +234,7 @@ class TestSerializationCommon(TestCase):
         m = mapping_type({i: i**2 for i in range(5)})
         s = serialize(FooContainer(foo=m),
                       type_key=_TYPE_KEY,
-                      fully_qualified_types=False,
-                      globals=locals())
+                      fully_qualified_types=False)
         self.assertIsInstance(s, dict)
         self.assertIn('foo', s)
 
@@ -261,8 +255,7 @@ class TestSerializationCommon(TestCase):
         m = mapping_type({i: Foo() for i in range(5)})
         s = serialize(FooContainer(foo=m),
                       type_key=_TYPE_KEY,
-                      fully_qualified_types=False,
-                      globals=locals())
+                      fully_qualified_types=False)
         self.assertIsInstance(s, dict)
         self.assertIn('foo', s)
 
