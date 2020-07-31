@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Any
 from unittest import TestCase
 
 from attr import attrs, attrib
@@ -159,6 +159,17 @@ class TestAttrs(TestCase):
 
         f = Foo({0: 1, 1: 'a', 2: True, 3: None})
         f2 = deserialize(serialize(f, fully_qualified_types=False), globals=locals())
+        self.assertIsInstance(f2, Foo)
+        self.assertIsInstance(f2.d, dict)
+        self.assertEqual(f.d, f2.d)
+
+    def test_attrs_with_dict_of_primitives_with_type_hint(self):
+        @attrs
+        class Foo:
+            d: Dict[int, Any] = attrib()
+
+        f = Foo({0: 1, 1: 'a', 2: True, 3: None})
+        f2 = deserialize(serialize(f, fully_qualified_types=False, type_key=None), obj_type=Foo)
         self.assertIsInstance(f2, Foo)
         self.assertIsInstance(f2.d, dict)
         self.assertEqual(f.d, f2.d)
