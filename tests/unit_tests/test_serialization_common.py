@@ -170,7 +170,10 @@ class TestSerializationCommon(TestCase):
         self._check_serialization_of_inner_mapping_of_classes(MyMapping)
 
     def test_serialization_inner_dict_with_invalid_keys(self):
-        d = {(i,): i for i in range(5)}
+        class Foo:
+            pass
+
+        d = {Foo(): 0}
         self.assertRaises(ValueError,
                           serialize,
                           obj=FooContainer(foo=d))
@@ -249,7 +252,7 @@ class TestSerializationCommon(TestCase):
             pass
 
         @serializer
-        def deserialize_foo(_: Foo):
+        def serialize_foo(_: Foo):
             return {}
 
         m = mapping_type({i: Foo() for i in range(5)})

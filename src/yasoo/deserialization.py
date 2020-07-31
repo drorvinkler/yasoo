@@ -15,15 +15,18 @@ from typing import (
 )
 
 from .constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
+from .objects import DictWithSerializedKeys
 from .utils import (
     resolve_types,
     get_fields,
     normalize_method,
     normalize_type,
     is_obj_supported_primitive,
+    SUPPORTED_PRIMITIVES,
 )
 
 T = TypeVar("T")
+NoneType = type(None)
 
 
 class Deserializer:
@@ -67,9 +70,8 @@ class Deserializer:
         :param obj_type: The type of the object to deserialize. Can only be ``None`` if ``data`` contains a type key.
         :param type_key: The key in ``data`` that contains the type name for non-primitive objects.
             Can be ``None`` if this key was omitted during serialization and deserialization should rely on type hints.
-        :param globals: If custom deserialization methods were registered and used forward reference
-            ('Foo' instead of Foo), this parameter should be a dictionary from type name to type, most easily
-            acquired using the built-in ``globals()`` function.
+        :param globals: A dictionary from type name to type, most easily acquired using the built-in ``globals()``
+            function.
         """
         if globals:
             self._custom_deserializers = resolve_types(
@@ -83,17 +85,19 @@ class Deserializer:
         data: Optional[Union[bool, int, float, str, list, Dict[str, Any]]],
         obj_type: Optional[Type[T]],
         type_key: Optional[str],
-        globals: Dict[str, Any],
+        external_globals: Dict[str, Any],
     ):
+        all_globals = dict(globals())
+        all_globals.update(external_globals)
         if is_obj_supported_primitive(data):
             return data
         if isinstance(data, list):
             if obj_type is not None:
                 _, generic_args = normalize_type(obj_type)
                 obj_type = generic_args[0] if generic_args else None
-            return [self._deserialize(d, obj_type, type_key, globals) for d in data]
+            return [self._deserialize(d, obj_type, type_key, all_globals) for d in data]
 
-        obj_type = self._get_object_type(obj_type, data, type_key, globals)
+        obj_type = self._get_object_type(obj_type, data, type_key, all_globals)
         if type_key in data:
             data.pop(type_key)
 
@@ -101,45 +105,76 @@ class Deserializer:
         if deserialization_method:
             return deserialization_method(data)
 
+        key_type = None
         try:
             fields = {f.name: f for f in get_fields(obj_type)}
         except TypeError:
             real_type, generic_args = normalize_type(obj_type)
             if issubclass(real_type, Enum):
                 return obj_type(data[ENUM_VALUE_KEY])
-            if issubclass(real_type, Mapping):
-                return self._load_mapping(
-                    data, real_type, generic_args, type_key, globals
-                )
-            if issubclass(real_type, Iterable):
-                # If we got here this means data is not a list, so obj_type came from the data itself and is safe to use
-                return self._load_iterable(data, obj_type, type_key, globals)
-            raise
+            elif issubclass(real_type, Mapping):
+                key_type = generic_args[0] if generic_args else None
+                if (
+                    key_type
+                    and key_type not in SUPPORTED_PRIMITIVES
+                    and key_type is not NoneType
+                ):
+                    obj_type = DictWithSerializedKeys
+                    fields = {f.name: f for f in get_fields(obj_type)}
+                    value_type = generic_args[1] if generic_args else Any
+                    fields["data"].field_type = Dict[str, value_type]
+                else:
+                    return self._load_mapping(
+                        data, real_type, generic_args, type_key, all_globals
+                    )
+            elif issubclass(real_type, Iterable):
+                # If we got here it means data is not a list, so obj_type came from the data itself and is safe to use
+                return self._load_iterable(data, obj_type, type_key, all_globals)
+            else:
+                raise
 
         self._check_for_missing_fields(data, fields, obj_type)
         self._check_for_extraneous_fields(data, fields, obj_type)
-        self._load_inner_fields(data, fields, type_key, globals)
+        self._load_inner_fields(data, fields, type_key, all_globals)
+        if obj_type is DictWithSerializedKeys:
+            return self._load_dict_with_serialized_keys(
+                obj_type(**data), key_type, type_key, all_globals
+            )
         return obj_type(**data)
 
-    def _load_mapping(self, data: Mapping, obj_type, generic_args, type_key, globals):
+    def _load_dict_with_serialized_keys(
+        self, obj: DictWithSerializedKeys, key_type, type_key, all_globals
+    ):
+        data = {
+            self._deserialize(json.loads(k), key_type, type_key, all_globals): v
+            for k, v in obj.data.items()
+        }
+        obj_type = Deserializer._get_type(obj.original_type, all_globals)
+        return obj_type(data)
+
+    def _load_mapping(
+        self, data: Mapping, obj_type, generic_args, type_key, all_globals
+    ):
         val_type = generic_args[1] if len(generic_args) > 1 else None
         return obj_type(
             {
-                k: self._deserialize(v, val_type, type_key, globals)
+                k: self._deserialize(v, val_type, type_key, all_globals)
                 for k, v in data.items()
             }
         )
 
-    def _load_iterable(self, data, obj_type, type_key, globals):
+    def _load_iterable(self, data, obj_type, type_key, all_globals):
         return obj_type(
-            self._deserialize(i, None, type_key, globals)
+            self._deserialize(i, None, type_key, all_globals)
             for i in data[ITERABLE_VALUE_KEY]
         )
 
-    def _load_inner_fields(self, data, fields, type_key, globals):
+    def _load_inner_fields(self, data, fields, type_key, all_globals):
         for key, value in data.items():
             field = fields[key]
-            data[key] = self._deserialize(value, field.field_type, type_key, globals)
+            data[key] = self._deserialize(
+                value, field.field_type, type_key, all_globals
+            )
 
     @staticmethod
     def _check_for_missing_fields(data, fields, obj_type):
@@ -168,10 +203,10 @@ class Deserializer:
         obj_type: Optional[Type[T]],
         data: Dict[str, Any],
         type_key: str,
-        globals: Dict[str, Any],
+        all_globals: Dict[str, Any],
     ) -> Type:
         if type_key in data:
-            return Deserializer._get_type(data[type_key], globals)
+            return Deserializer._get_type(data[type_key], all_globals)
         if obj_type is None:
             raise ValueError(
                 f"type key not found in data and obj type could not be inferred.\nData: {json.dumps(data)}"
@@ -179,13 +214,15 @@ class Deserializer:
         return obj_type
 
     @staticmethod
-    def _get_type(type_name: str, globals: Dict[str, Any]) -> Type:
+    def _get_type(type_name: str, all_globals: Dict[str, Any]) -> Type:
         if "." not in type_name:
-            return Deserializer._get_non_fully_qualified_type(type_name, globals)
+            return Deserializer._get_non_fully_qualified_type(type_name, all_globals)
         return Deserializer._get_fully_qualified_type(type_name)
 
     @staticmethod
-    def _get_non_fully_qualified_type(type_name: str, globals: Dict[str, Any]) -> Type:
+    def _get_non_fully_qualified_type(
+        type_name: str, all_globals: Dict[str, Any]
+    ) -> Type:
         if type_name == "list":
             return list
         if type_name == "set":
@@ -194,9 +231,9 @@ class Deserializer:
             return tuple
         if type_name == "dict":
             return dict
-        if type_name not in globals:
+        if type_name not in all_globals:
             raise ValueError(f"type {type_name} not found in globals.")
-        return globals[type_name]
+        return all_globals[type_name]
 
     @staticmethod
     def _get_fully_qualified_type(type_name):

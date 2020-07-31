@@ -1,3 +1,4 @@
+from typing import Dict
 from unittest import TestCase
 
 from attr import attrs, attrib
@@ -213,4 +214,71 @@ class TestAttrs(TestCase):
         f2 = deserialize(serialize(f, fully_qualified_types=False, preserve_iterable_types=True), globals=g)
         self.assertIsInstance(f2, Foo)
         self.assertIsInstance(f2.d, MyMapping)
+        self.assertEqual(f.d, f2.d)
+
+    def test_attrs_with_dict_with_complex_keys(self):
+        @attrs
+        class Foo:
+            d = attrib()
+
+        f = Foo({(i, i * 2): i for i in range(5)})
+        f2 = deserialize(serialize(f, fully_qualified_types=False), globals=locals())
+        self.assertIsInstance(f2, Foo)
+        self.assertIsInstance(f2.d, dict)
+        self.assertEqual(f.d, f2.d)
+
+    def test_attrs_with_dict_with_attrs_keys(self):
+        @attrs
+        class Foo:
+            d = attrib()
+
+        @attrs(frozen=True)
+        class MyKey:
+            k = attrib()
+
+        f = Foo({MyKey(str(i)): i for i in range(5)})
+        f2 = deserialize(serialize(f, fully_qualified_types=False), globals=locals())
+        self.assertIsInstance(f2, Foo)
+        self.assertIsInstance(f2.d, dict)
+        self.assertEqual(f.d, f2.d)
+
+    def test_attrs_with_dict_with_complex_keys_and_type_hints(self):
+        @attrs
+        class Foo:
+            d: Dict[tuple, int] = attrib()
+
+        f = Foo({(i, i * 2): i for i in range(5)})
+        f2 = deserialize(serialize(f, type_key=None, fully_qualified_types=False), Foo, globals=locals())
+        self.assertIsInstance(f2, Foo)
+        self.assertIsInstance(f2.d, dict)
+        self.assertEqual(f.d, f2.d)
+
+    def test_attrs_with_dict_with_complex_keys_and_complex_values(self):
+        @attrs
+        class Foo:
+            d = attrib()
+
+        @attrs
+        class Bar:
+            d = attrib()
+
+        f = Foo({(i, i * 2): Bar(i) for i in range(5)})
+        f2 = deserialize(serialize(f, fully_qualified_types=False), globals=locals())
+        self.assertIsInstance(f2, Foo)
+        self.assertIsInstance(f2.d, dict)
+        self.assertEqual(f.d, f2.d)
+
+    def test_attrs_with_dict_with_complex_keys_and_complex_values_and_type_hints(self):
+        @attrs
+        class Bar:
+            b: int = attrib()
+
+        @attrs
+        class Foo:
+            d: Dict[tuple, Bar] = attrib()
+
+        f = Foo({(i, i * 2): Bar(i) for i in range(5)})
+        f2 = deserialize(serialize(f, type_key=None, fully_qualified_types=False), Foo, globals=locals())
+        self.assertIsInstance(f2, Foo)
+        self.assertIsInstance(f2.d, dict)
         self.assertEqual(f.d, f2.d)

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Dict
 from unittest import TestCase
 
 from yasoo import serialize, deserialize
@@ -170,6 +170,17 @@ if DATACLASSES_EXIST:
             self.assertIsInstance(f2.d, dict)
             self.assertEqual(f.d, f2.d)
 
+        def test_dataclass_with_dict_of_primitives_with_type_hint(self):
+            @dataclass
+            class Foo:
+                d: Dict[int, Any]
+
+            f = Foo({0: 1, 1: 'a', 2: True, 3: None})
+            f2 = deserialize(serialize(f, fully_qualified_types=False, type_key=None), obj_type=Foo)
+            self.assertIsInstance(f2, Foo)
+            self.assertIsInstance(f2.d, dict)
+            self.assertEqual(f.d, f2.d)
+
         def test_dataclass_with_dict_of_classes_without_type_hint(self):
             @dataclass
             class Foo:
@@ -221,4 +232,71 @@ if DATACLASSES_EXIST:
             f2 = deserialize(serialize(f, fully_qualified_types=False, preserve_iterable_types=True), globals=g)
             self.assertIsInstance(f2, Foo)
             self.assertIsInstance(f2.d, MyMapping)
+            self.assertEqual(f.d, f2.d)
+
+        def test_dataclass_with_dict_with_complex_keys(self):
+            @dataclass
+            class Foo:
+                d: Any
+
+            f = Foo({(i, i*2): i for i in range(5)})
+            f2 = deserialize(serialize(f, fully_qualified_types=False), globals=locals())
+            self.assertIsInstance(f2, Foo)
+            self.assertIsInstance(f2.d, dict)
+            self.assertEqual(f.d, f2.d)
+
+        def test_dataclass_with_dict_with_dataclass_keys(self):
+            @dataclass
+            class Foo:
+                d: Any
+
+            @dataclass(frozen=True)
+            class MyKey:
+                k: Any
+
+            f = Foo({MyKey(str(i)): i for i in range(5)})
+            f2 = deserialize(serialize(f, fully_qualified_types=False), globals=locals())
+            self.assertIsInstance(f2, Foo)
+            self.assertIsInstance(f2.d, dict)
+            self.assertEqual(f.d, f2.d)
+
+        def test_dataclass_with_dict_with_complex_keys_and_type_hints(self):
+            @dataclass
+            class Foo:
+                d: Dict[tuple, int]
+
+            f = Foo({(i, i*2): i for i in range(5)})
+            f2 = deserialize(serialize(f, type_key=None, fully_qualified_types=False), Foo, globals=locals())
+            self.assertIsInstance(f2, Foo)
+            self.assertIsInstance(f2.d, dict)
+            self.assertEqual(f.d, f2.d)
+
+        def test_dataclass_with_dict_with_complex_keys_and_complex_values(self):
+            @dataclass
+            class Bar:
+                d: Any
+
+            @dataclass
+            class Foo:
+                d: Any
+
+            f = Foo({(i, i * 2): Bar(i) for i in range(5)})
+            f2 = deserialize(serialize(f, fully_qualified_types=False), globals=locals())
+            self.assertIsInstance(f2, Foo)
+            self.assertIsInstance(f2.d, dict)
+            self.assertEqual(f.d, f2.d)
+
+        def test_dataclass_with_dict_with_complex_keys_and_complex_values_and_type_hints(self):
+            @dataclass
+            class Bar:
+                b: int
+
+            @dataclass
+            class Foo:
+                d: Dict[tuple, Bar]
+
+            f = Foo({(i, i * 2): Bar(i) for i in range(5)})
+            f2 = deserialize(serialize(f, type_key=None, fully_qualified_types=False), Foo, globals=locals())
+            self.assertIsInstance(f2, Foo)
+            self.assertIsInstance(f2.d, dict)
             self.assertEqual(f.d, f2.d)

@@ -24,6 +24,9 @@ except ImportError:
         return t.__origin__
 
 
+SUPPORTED_PRIMITIVES = {bool, int, float, str}
+
+
 @attr.attrs
 class Field:
     name: str = attr.attrib()
@@ -77,13 +80,7 @@ def normalize_type(t: Union[type, GenericType]) -> Tuple[type, tuple]:
 
 
 def is_obj_supported_primitive(obj):
-    return (
-        isinstance(obj, bool)
-        or isinstance(obj, int)
-        or isinstance(obj, float)
-        or isinstance(obj, str)
-        or obj is None
-    )
+    return any(isinstance(obj, t) for t in SUPPORTED_PRIMITIVES) or obj is None
 
 
 def _resolve_type(globals, t):

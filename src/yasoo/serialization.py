@@ -1,8 +1,10 @@
+import json
 import warnings
 from enum import Enum
 from inspect import signature
 from typing import Dict, Any, Union, Mapping, Iterable, Callable, Type, Optional
 
+from yasoo.objects import DictWithSerializedKeys
 from yasoo.utils import normalize_type
 
 from .constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
@@ -18,7 +20,7 @@ from .utils import (
 class Serializer:
     def __init__(self) -> None:
         super().__init__()
-        self._custom_serializers = {}
+        self._custom_serializers: Dict[type, Callable[[Any], Dict[str, Any]]] = {}
 
     def register(self, type_to_register: Optional[Type] = None):
         """
@@ -106,8 +108,8 @@ class Serializer:
                 else:
                     return obj
 
-        if type_key is not None:
-            self._add_type_data(result, obj, type_key, fully_qualified_types)
+        if type_key is not None and type_key not in result:
+            result[type_key] = self._get_type_data(obj, fully_qualified_types)
         return result
 
     def _serialize_data_class(
@@ -141,10 +143,43 @@ class Serializer:
     def _serialize_mapping(
         self, obj: Mapping, type_key, fully_qualified_types, preserve_iterable_types
     ):
-        if any(not is_obj_supported_primitive(k) for k in obj.keys()):
-            raise ValueError(
-                f"Mapping {obj} contains a key which is not json-serializable"
+        result = self._serialize_mapping_values(
+            fully_qualified_types, obj, preserve_iterable_types, type_key
+        )
+        if any(not is_obj_supported_primitive(k) for k in result.keys()):
+            d = self._serialize_complex_keys(result, type_key, fully_qualified_types)
+            result = self._serialize(
+                d,
+                type_key=type_key,
+                fully_qualified_types=fully_qualified_types,
+                preserve_iterable_types=preserve_iterable_types,
             )
+        return result
+
+    def _serialize_complex_keys(self, obj: Mapping, type_key, fully_qualified_types):
+        def serialize_key(k):
+            return json.dumps(
+                self.serialize(
+                    k,
+                    type_key=type_key,
+                    fully_qualified_types=fully_qualified_types,
+                    preserve_iterable_types=True,
+                )
+            )
+
+        try:
+            data = {serialize_key(k): v for k, v in obj.items()}
+            return DictWithSerializedKeys(
+                data, self._get_type_data(obj, fully_qualified_types)
+            )
+        except TypeError:
+            raise ValueError(
+                f"Mapping {obj} contains a key which is not json-serializable and not yasoo-serializable"
+            )
+
+    def _serialize_mapping_values(
+        self, fully_qualified_types, obj, preserve_iterable_types, type_key
+    ):
         return {
             k: self._serialize(
                 v, type_key, fully_qualified_types, preserve_iterable_types
@@ -219,13 +254,13 @@ class Serializer:
             )
 
     @staticmethod
-    def _add_type_data(data, obj, type_key, fully_qualified_types):
+    def _get_type_data(obj, fully_qualified_types) -> str:
         class_name = obj.__class__.__name__
         if fully_qualified_types:
             type_value = ".".join((obj.__class__.__module__, class_name))
         else:
             type_value = class_name
-        data[type_key] = type_value
+        return type_value
 
     @staticmethod
     def _warn(warning):
