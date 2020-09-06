@@ -1,6 +1,10 @@
 Changelog
 =========
 
+0.6.0 (2020-09-06)
+-------------------
+- Supporting tuples with mixed types without type key.
+
 0.5.0 (2020-08-01)
 -------------------
 - Supporting complex keys in dictionaries, i.e. dataclasses, tuples etc.
