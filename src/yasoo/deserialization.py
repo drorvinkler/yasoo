@@ -2,6 +2,7 @@ import json
 from enum import Enum
 from importlib import import_module
 from inspect import signature
+from itertools import zip_longest
 from typing import (
     Optional,
     Type,
@@ -12,6 +13,8 @@ from typing import (
     TypeVar,
     Mapping,
     Iterable,
+    List,
+    Tuple,
 )
 
 from .constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
@@ -92,10 +95,10 @@ class Deserializer:
         if is_obj_supported_primitive(data):
             return data
         if isinstance(data, list):
-            if obj_type is not None:
-                _, generic_args = normalize_type(obj_type)
-                obj_type = generic_args[0] if generic_args else None
-            return [self._deserialize(d, obj_type, type_key, all_globals) for d in data]
+            list_types = self._get_list_types(obj_type, data)
+            return [
+                self._deserialize(d, t, type_key, all_globals) for t, d in list_types
+            ]
 
         obj_type = self._get_object_type(obj_type, data, type_key, all_globals)
         if type_key in data:
@@ -197,6 +200,19 @@ class Deserializer:
             raise ValueError(
                 f'Found extraneous fields "{extraneous_str}" for object type "{obj_type.__name__}". Data is:\n{json.dumps(data)}'
             )
+
+    @staticmethod
+    def _get_list_types(
+        type_hint: Optional[type], data: list
+    ) -> List[Tuple[Optional[type], Any]]:
+        if type_hint is None:
+            return [(None, item) for item in data]
+        _, generic_args = normalize_type(type_hint)
+        if len(generic_args) == 1 or len(generic_args) == 2 and generic_args[1] is ...:
+            return [(generic_args[0], item) for item in data]
+        if len(generic_args) == len(data):
+            return list(zip(generic_args, data))
+        return list(zip_longest(generic_args, data))
 
     @staticmethod
     def _get_object_type(

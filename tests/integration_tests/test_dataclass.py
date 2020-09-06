@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Tuple, Iterable
 from unittest import TestCase
 
 from yasoo import serialize, deserialize
@@ -300,3 +300,44 @@ if DATACLASSES_EXIST:
             self.assertIsInstance(f2, Foo)
             self.assertIsInstance(f2.d, dict)
             self.assertEqual(f.d, f2.d)
+
+        def test_dataclass_with_mixed_tuple_of_primitives_and_type_hints(self):
+            @dataclass
+            class Foo:
+                a: Tuple[int, str]
+
+            f = Foo((8, 'dfkjh'))
+            f2 = deserialize(serialize(f, type_key=None, fully_qualified_types=False), Foo, globals=locals())
+            self.assertIsInstance(f2, Foo)
+            self.assertIsInstance(f2.a, Iterable)
+            self.assertEqual(list(f.a), list(f2.a))
+
+        def test_dataclass_with_mixed_tuple_and_type_hints(self):
+            @dataclass
+            class Bar:
+                b: str
+
+            @dataclass
+            class Foo:
+                a: Tuple[int, Bar]
+
+            f = Foo((8, Bar('dfkjh')))
+            f2 = deserialize(serialize(f, type_key=None, fully_qualified_types=False), Foo, globals=locals())
+            self.assertIsInstance(f2, Foo)
+            self.assertIsInstance(f2.a, Iterable)
+            self.assertEqual(list(f.a), list(f2.a))
+
+        def test_dataclass_with_tuple_of_classes_and_type_hints(self):
+            @dataclass
+            class Bar:
+                b: str
+
+            @dataclass
+            class Foo:
+                a: Tuple[Bar, ...]
+
+            f = Foo(tuple(Bar(str(i)) for i in range(5)))
+            f2 = deserialize(serialize(f, type_key=None, fully_qualified_types=False), Foo, globals=locals())
+            self.assertIsInstance(f2, Foo)
+            self.assertIsInstance(f2.a, Iterable)
+            self.assertEqual(list(f.a), list(f2.a))
