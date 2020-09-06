@@ -42,6 +42,24 @@ with open(path) as f:
     obj = deserizlie(json.load(f))
 ```
 ### Advanced Usage
+#### Deserializing Collections of Objects
+You can deserialize collections of objects:
+```
+from attr import attrs, attrib
+from yasoo import serialize, deserialize
+from yasoo.typing import List_
+
+@attrs
+class Foo:
+    a = attrib()
+
+foos = [Foo(a=i) for i in range(5)]
+serialized = serialize(foos)
+de_foos = deserialize(serialized, obj_type=List_[Foo])
+assert de_foos == foos
+```
+Notice that passing the object type as `List[Foo]` won't give you the type
+of `de_foos`, but using `yasoo.typing.List_` will fix this.
 #### Custom (De)Serializers
 For objects that need custom serialization/deserialization, you can register your own methods:
 ```

@@ -15,6 +15,7 @@ from typing import (
     Iterable,
     List,
     Tuple,
+    overload,
 )
 
 from .constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
@@ -57,6 +58,16 @@ class Deserializer:
             return deserialization_method
 
         return registration_method
+
+    @overload
+    def deserialize(
+        self,
+        data: Optional[Union[bool, int, float, str, list, Dict[str, Any]]],
+        obj_type: Callable[[], T],
+        type_key: Optional[str] = "__type",
+        globals: Optional[Dict[str, Any]] = None,
+    ) -> T:
+        ...
 
     def deserialize(
         self,

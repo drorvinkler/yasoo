@@ -1,5 +1,8 @@
 Changelog
 =========
+0.6.1 (2020-09-06)
+-------------------
+- Hack to support deserialization with `obj_type` that is a generic type.
 
 0.6.0 (2020-09-06)
 -------------------

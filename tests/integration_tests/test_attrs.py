@@ -3,6 +3,7 @@ from unittest import TestCase
 
 from attr import attrs, attrib
 from yasoo import serialize, deserialize
+from yasoo.typing import List_, Set_, Dict_
 
 from tests.test_classes import MyIterable, MyMapping
 
@@ -334,3 +335,32 @@ class TestAttrs(TestCase):
         self.assertIsInstance(f2, Foo)
         self.assertIsInstance(f2.a, Iterable)
         self.assertEqual(list(f.a), list(f2.a))
+
+    def test_deserialization_with_yasoo_type_hints(self):
+        @attrs(frozen=True)
+        class Foo:
+            a: int = attrib()
+
+        l = [[Foo(i) for i in range(5)] for _ in range(5)]
+        l2 = deserialize(serialize(l, type_key=None), obj_type=List_[List_[Foo]])
+        self.assertIsInstance(l2, list)
+        self.assertIsInstance(l2[0], list)
+        self.assertIsInstance(l2[0][0], Foo)
+        self.assertEqual(l, l2)
+
+        l = [set(i) for i in l]
+        l2 = deserialize(serialize(l, type_key=None), obj_type=List_[Set_[Foo]])
+        self.assertIsInstance(l2, list)
+        self.assertIsInstance(l2[0], list)
+        self.assertIsInstance(l2[0][0], Foo)
+        for i1, i2 in zip(l, l2):
+            self.assertEqual(i1, set(i2))
+
+        d = dict(enumerate(l))
+        d2 = deserialize(serialize(d, type_key=None), obj_type=Dict_[int, Set_[Foo]])
+        self.assertIsInstance(d2, dict)
+        self.assertEqual(d.keys(), d2.keys())
+        self.assertIsInstance(d2[0], list)
+        self.assertIsInstance(d2[0][0], Foo)
+        for k, v in d.items():
+            self.assertEqual(v, set(d2[k]))
