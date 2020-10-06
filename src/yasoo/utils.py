@@ -13,7 +13,7 @@ try:
     from typing import GenericMeta as GenericType
 
     def _get_origin(t: GenericType):
-        return t.__extra__
+        return t.__extra__ or t.__origin__
 
 
 except ImportError:
