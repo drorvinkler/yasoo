@@ -1,5 +1,6 @@
+import sys
 from typing import Any, Dict, Tuple, Iterable, Generic, TypeVar
-from unittest import TestCase
+from unittest import TestCase, skip
 
 from yasoo import serialize, deserialize, deserializer, serializer
 from yasoo.typing import List_, Set_, Dict_
@@ -12,6 +13,12 @@ try:
     DATACLASSES_EXIST = True
 except ModuleNotFoundError:
     DATACLASSES_EXIST = False
+
+
+def python_39_needed(func):
+    if sys.version_info.minor < 9:
+        return skip('Python verion > 3.9 needed for this test')(func)
+    return func
 
 
 if DATACLASSES_EXIST:
@@ -366,6 +373,7 @@ if DATACLASSES_EXIST:
             self.assertIsInstance(f2, Foo)
             self.assertIsInstance(f2.a, MyGeneric)
 
+        @python_39_needed
         def test_dataclass_with_generic_type_hint_in_list(self):
             @dataclass
             class Bar:
@@ -381,6 +389,7 @@ if DATACLASSES_EXIST:
             self.assertIsInstance(f2.a, list)
             self.assertEqual(f.a, f2.a)
 
+        @python_39_needed
         def test_dataclass_with_generic_type_hint_in_set_and_preservation(self):
             @dataclass
             class Foo:
