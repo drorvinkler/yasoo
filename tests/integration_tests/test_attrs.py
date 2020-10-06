@@ -295,7 +295,7 @@ class TestAttrs(TestCase):
         self.assertIsInstance(f2.d, dict)
         self.assertEqual(f.d, f2.d)
 
-    def test_dataclass_with_mixed_tuple_of_primitives_and_type_hints(self):
+    def test_attrs_with_mixed_tuple_of_primitives_and_type_hints(self):
         @attrs
         class Foo:
             a: Tuple[int, str] = attrib()
@@ -306,7 +306,7 @@ class TestAttrs(TestCase):
         self.assertIsInstance(f2.a, Iterable)
         self.assertEqual(list(f.a), list(f2.a))
 
-    def test_dataclass_with_mixed_tuple_and_type_hints(self):
+    def test_attrs_with_mixed_tuple_and_type_hints(self):
         @attrs
         class Bar:
             b: str = attrib()
@@ -321,7 +321,7 @@ class TestAttrs(TestCase):
         self.assertIsInstance(f2.a, Iterable)
         self.assertEqual(list(f.a), list(f2.a))
 
-    def test_dataclass_with_tuple_of_classes_and_type_hints(self):
+    def test_attrs_with_tuple_of_classes_and_type_hints(self):
         @attrs
         class Bar:
             b: str = attrib()
