@@ -1,7 +1,7 @@
-from typing import Any, Dict, Tuple, Iterable
+from typing import Any, Dict, Tuple, Iterable, Generic, TypeVar
 from unittest import TestCase
 
-from yasoo import serialize, deserialize
+from yasoo import serialize, deserialize, deserializer, serializer
 from yasoo.typing import List_, Set_, Dict_
 
 from tests.test_classes import MyIterable, MyMapping
@@ -342,6 +342,29 @@ if DATACLASSES_EXIST:
             self.assertIsInstance(f2, Foo)
             self.assertIsInstance(f2.a, Iterable)
             self.assertEqual(list(f.a), list(f2.a))
+
+        def test_dataclass_with_user_defined_generic_class_and_type_hints(self):
+            T = TypeVar('T')
+
+            class MyGeneric(Generic[T]):
+                pass
+
+            @dataclass
+            class Foo:
+                a: MyGeneric[int]
+
+            @serializer
+            def sfunc(_: MyGeneric):
+                return {}
+
+            @deserializer
+            def dfunc(_) -> MyGeneric:
+                return MyGeneric()
+
+            f = Foo(MyGeneric())
+            f2 = deserialize(serialize(f, type_key=None), Foo, globals=locals())
+            self.assertIsInstance(f2, Foo)
+            self.assertIsInstance(f2.a, MyGeneric)
 
         def test_deserialization_with_yasoo_type_hints(self):
             @dataclass(frozen=True)
