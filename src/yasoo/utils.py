@@ -24,6 +24,17 @@ except ImportError:
         return t.__origin__
 
 
+generic_types = [GenericType]
+
+try:
+    # Python >= 3.9
+    from types import GenericAlias
+
+    generic_types.append(GenericAlias)
+except ImportError:
+    pass
+
+
 SUPPORTED_PRIMITIVES = {bool, int, float, str}
 
 
@@ -66,7 +77,7 @@ def normalize_method(method) -> callable:
 def normalize_type(t: Union[type, GenericType]) -> Tuple[type, tuple]:
     if t == Any:
         t = None
-    if isinstance(t, GenericType):
+    if any(isinstance(t, gt) for gt in generic_types):
         real_type = _get_origin(t)
         generic_args = t.__args__
     elif t is None or isinstance(t, type):

@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Generic, TypeVar
 from unittest import TestCase
 
 from yasoo import deserialize, deserializer_of, deserializer
@@ -88,6 +89,43 @@ class TestSerializationCommon(TestCase):
 
         f = deserialize({}, Foo, globals=locals())
         self.assertEqual(Foo, type(f))
+
+    def test_deserializer_registration_user_defined_generic(self):
+        T = TypeVar('T')
+
+        class Foo(Generic[T]):
+            pass
+
+        @deserializer
+        def func(_) -> Foo:
+            return Foo()
+
+        f = deserialize({}, Foo[int])
+        self.assertIsInstance(f, Foo)
+
+    def test_deserializer_registration_user_defined_generic_different_args(self):
+        T = TypeVar('T')
+
+        class Foo(Generic[T]):
+            def __init__(self, a) -> None:
+                super().__init__()
+                self.a = a
+
+        @deserializer
+        def func(_) -> Foo[int]:
+            return Foo('func')
+
+        @deserializer
+        def func2(_) -> Foo[str]:
+            return Foo('func2')
+
+        f = deserialize({}, Foo[int])
+        self.assertIsInstance(f, Foo)
+        self.assertEqual('func', f.a)
+
+        f = deserialize({}, Foo[str])
+        self.assertIsInstance(f, Foo)
+        self.assertEqual('func2', f.a)
 
     def test_deserialization_of_list(self):
         class Foo:

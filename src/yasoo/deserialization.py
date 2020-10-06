@@ -144,6 +144,8 @@ class Deserializer:
             elif issubclass(real_type, Iterable):
                 # If we got here it means data is not a list, so obj_type came from the data itself and is safe to use
                 return self._load_iterable(data, obj_type, type_key, all_globals)
+            elif real_type != obj_type:
+                return self._deserialize(data, real_type, type_key, external_globals)
             else:
                 raise
 

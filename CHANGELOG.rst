@@ -1,5 +1,9 @@
 Changelog
 =========
+0.7.0 (2020-10-07)
+-------------------
+- Support for Python 3.9 (PEP 585).
+
 0.6.1 (2020-09-06)
 -------------------
 - Hack to support deserialization with `obj_type` that is a generic type.

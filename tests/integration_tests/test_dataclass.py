@@ -366,6 +366,32 @@ if DATACLASSES_EXIST:
             self.assertIsInstance(f2, Foo)
             self.assertIsInstance(f2.a, MyGeneric)
 
+        def test_dataclass_with_generic_type_hint_in_list(self):
+            @dataclass
+            class Bar:
+                b: int
+
+            @dataclass
+            class Foo:
+                a: list[Bar]
+
+            f = Foo([Bar(i) for i in range(5)])
+            f2 = deserialize(serialize(f, type_key=None), Foo, globals=locals())
+            self.assertIsInstance(f2, Foo)
+            self.assertIsInstance(f2.a, list)
+            self.assertEqual(f.a, f2.a)
+
+        def test_dataclass_with_generic_type_hint_in_set_and_preservation(self):
+            @dataclass
+            class Foo:
+                a: set[int]
+
+            f = Foo(set(range(5)))
+            f2 = deserialize(serialize(f, type_key=None, preserve_iterable_types=True), Foo, globals=locals())
+            self.assertIsInstance(f2, Foo)
+            self.assertIsInstance(f2.a, set)
+            self.assertEqual(f.a, f2.a)
+
         def test_deserialization_with_yasoo_type_hints(self):
             @dataclass(frozen=True)
             class Foo:
