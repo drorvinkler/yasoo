@@ -128,7 +128,7 @@ class TestSerializationCommon(TestCase):
             return {}
 
         type_key = '__type'
-        d = {i: Foo() for i in range(5)}
+        d = {str(i): Foo() for i in range(5)}
         s = serialize(d,
                       type_key=type_key,
                       fully_qualified_types=False)
@@ -234,7 +234,7 @@ class TestSerializationCommon(TestCase):
                 self.assertEqual({type_key: 'Foo'}, d)
 
     def _check_serialization_of_inner_mapping_of_primitives(self, mapping_type):
-        m = mapping_type({i: i**2 for i in range(5)})
+        m = mapping_type({str(i): i**2 for i in range(5)})
         s = serialize(FooContainer(foo=m),
                       type_key=_TYPE_KEY,
                       fully_qualified_types=False)
@@ -255,7 +255,7 @@ class TestSerializationCommon(TestCase):
         def serialize_foo(_: Foo):
             return {}
 
-        m = mapping_type({i: Foo() for i in range(5)})
+        m = mapping_type({str(i): Foo() for i in range(5)})
         s = serialize(FooContainer(foo=m),
                       type_key=_TYPE_KEY,
                       fully_qualified_types=False)

@@ -128,11 +128,7 @@ class Deserializer:
                 return obj_type(data[ENUM_VALUE_KEY])
             elif issubclass(real_type, Mapping):
                 key_type = generic_args[0] if generic_args else None
-                if (
-                    key_type
-                    and key_type not in SUPPORTED_PRIMITIVES
-                    and key_type is not NoneType
-                ):
+                if self._is_mapping_dict_with_serialized_keys(key_type, data):
                     obj_type = DictWithSerializedKeys
                     fields = {f.name: f for f in get_fields(obj_type)}
                     value_type = generic_args[1] if generic_args else Any
@@ -192,6 +188,24 @@ class Deserializer:
                 value, field.field_type, type_key, all_globals
             )
 
+    @classmethod
+    def _is_mapping_dict_with_serialized_keys(cls, key_type, data):
+        if (
+            key_type
+            and key_type not in SUPPORTED_PRIMITIVES
+            and key_type is not NoneType
+        ):
+            return True
+        if key_type is str:
+            return False
+
+        fields = {f.name: f for f in get_fields(DictWithSerializedKeys)}
+        try:
+            cls._check_for_missing_fields(data, fields, DictWithSerializedKeys)
+        except ValueError:
+            return False
+        return True
+
     @staticmethod
     def _check_for_missing_fields(data, fields, obj_type):
         missing = {
@@ -236,7 +250,7 @@ class Deserializer:
     ) -> Type:
         if type_key in data:
             return Deserializer._get_type(data[type_key], all_globals)
-        if obj_type is None:
+        if obj_type is None or obj_type is Any:
             raise ValueError(
                 f"type key not found in data and obj type could not be inferred.\nData: {json.dumps(data)}"
             )

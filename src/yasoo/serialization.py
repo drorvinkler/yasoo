@@ -197,7 +197,10 @@ class Serializer:
             stringify_dict_keys=stringify_dict_keys,
         )
         if any(not self._key_ok(k, stringify_dict_keys) for k in result.keys()):
-            d = self._serialize_complex_keys(result, type_key, fully_qualified_types)
+            obj_type = self._get_type_data(obj, fully_qualified_types)
+            d = self._serialize_complex_keys(
+                result, obj_type, type_key, fully_qualified_types
+            )
             result = self._serialize(
                 d,
                 type_key=type_key,
@@ -207,7 +210,9 @@ class Serializer:
             )
         return result
 
-    def _serialize_complex_keys(self, obj: Mapping, type_key, fully_qualified_types):
+    def _serialize_complex_keys(
+        self, obj: dict, obj_type: str, type_key, fully_qualified_types
+    ):
         def serialize_key(k):
             return json.dumps(
                 self.serialize(
@@ -220,9 +225,7 @@ class Serializer:
 
         try:
             data = {serialize_key(k): v for k, v in obj.items()}
-            return DictWithSerializedKeys(
-                data, self._get_type_data(obj, fully_qualified_types)
-            )
+            return DictWithSerializedKeys(data, obj_type)
         except TypeError:
             raise ValueError(
                 f"Mapping {obj} contains a key which is not json-serializable and not yasoo-serializable"

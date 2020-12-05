@@ -210,7 +210,7 @@ class TestAttrs(TestCase):
             d: MyMapping = attrib()
 
         f = Foo(MyMapping({0: 10, 1: 'a', 2: True, 3: None}))
-        f2 = deserialize(serialize(f, fully_qualified_types=False, type_key=None), obj_type=Foo)
+        f2 = deserialize(serialize(f, fully_qualified_types=False, type_key=None), obj_type=Foo, globals=globals())
         self.assertIsInstance(f2, Foo)
         self.assertIsInstance(f2.d, MyMapping)
         self.assertEqual(f.d, f2.d)

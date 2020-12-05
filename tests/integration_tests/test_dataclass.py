@@ -224,7 +224,7 @@ if DATACLASSES_EXIST:
                 d: MyMapping
 
             f = Foo(MyMapping({0: 10, 1: 'a', 2: True, 3: None}))
-            f2 = deserialize(serialize(f, fully_qualified_types=False, type_key=None), obj_type=Foo)
+            f2 = deserialize(serialize(f, fully_qualified_types=False, type_key=None), obj_type=Foo, globals=globals())
             self.assertIsInstance(f2, Foo)
             self.assertIsInstance(f2.d, MyMapping)
             self.assertEqual(f.d, f2.d)
@@ -429,14 +429,3 @@ if DATACLASSES_EXIST:
             self.assertIsInstance(d2[0][0], Foo)
             for k, v in d.items():
                 self.assertEqual(v, set(d2[k]))
-
-        def test_stringified_dict_key_types(self):
-            original = {'a': 1, 2: 'b', True: 3}
-            serialized = serialize(original, stringify_dict_keys=True)
-
-            self.assertIsInstance(serialized, dict)
-            for k in serialized.keys():
-                self.assertIsInstance(k, str)
-
-            restored = deserialize(serialized)
-            self.assertEqual(original, restored)
