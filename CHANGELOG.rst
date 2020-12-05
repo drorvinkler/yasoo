@@ -1,5 +1,9 @@
 Changelog
 =========
+0.8.0 (2020-12-05)
+-------------------
+- Serializing ``dict`` keys that are not strings (can be overridden).
+
 0.7.0 (2020-10-07)
 -------------------
 - Support for Python 3.9 (PEP 585).

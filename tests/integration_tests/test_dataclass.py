@@ -429,3 +429,14 @@ if DATACLASSES_EXIST:
             self.assertIsInstance(d2[0][0], Foo)
             for k, v in d.items():
                 self.assertEqual(v, set(d2[k]))
+
+        def test_stringified_dict_key_types(self):
+            original = {'a': 1, 2: 'b', True: 3}
+            serialized = serialize(original, stringify_dict_keys=True)
+
+            self.assertIsInstance(serialized, dict)
+            for k in serialized.keys():
+                self.assertIsInstance(k, str)
+
+            restored = deserialize(serialized)
+            self.assertEqual(original, restored)
