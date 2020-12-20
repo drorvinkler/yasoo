@@ -16,6 +16,7 @@ setuptools.setup(
     package_dir={'': 'src'},
     install_requires=[
         'attrs>=16.2',
+        'more-itertools',
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

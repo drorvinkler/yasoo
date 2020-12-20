@@ -1,3 +1,4 @@
 attrs>=16.2
+more-itertools
 pre-commit
 -e .
