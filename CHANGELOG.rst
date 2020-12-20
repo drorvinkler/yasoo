@@ -1,5 +1,9 @@
 Changelog
 =========
+0.8.5 (2020-12-05)
+-------------------
+- Added data manipulation utils under ``yasoo.data_fixer``.
+
 0.8.0 (2020-12-05)
 -------------------
 - Serializing ``dict`` keys that are not strings (can be overridden).
