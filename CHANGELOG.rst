@@ -1,5 +1,9 @@
 Changelog
 =========
+0.8.6 (2021-07-01)
+___________________
+- Added a default (de)serializer for ``datetime`` objects.
+
 0.8.5 (2020-12-05)
 -------------------
 - Added data manipulation utils under ``yasoo.data_fixer``.

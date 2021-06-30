@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 from typing import Generic, TypeVar
 from unittest import TestCase
@@ -126,6 +127,15 @@ class TestSerializationCommon(TestCase):
         f = deserialize({}, Foo[str])
         self.assertIsInstance(f, Foo)
         self.assertEqual('func2', f.a)
+
+    def test_deserializer_registration_datetime_overrides_default(self):
+        _datetime = datetime.now()
+
+        @deserializer_of(datetime)
+        def foo(d: dict) -> datetime:
+            return _datetime
+
+        self.assertEqual(_datetime, deserialize({'time': 0}, datetime, type_key=None))
 
     def test_deserialization_of_list(self):
         class Foo:

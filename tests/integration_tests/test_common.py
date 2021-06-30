@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Dict, Any
 from unittest import TestCase
 
@@ -28,3 +29,7 @@ class TestCommon(TestCase):
 
         restored = deserialize(serialized)
         self.assertEqual(original, restored)
+
+    def test_datetime(self):
+        d = datetime.now()
+        self.assertEqual(d, deserialize(serialize(d)))

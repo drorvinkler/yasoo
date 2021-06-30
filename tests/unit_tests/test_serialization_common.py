@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 from typing import Sequence
 from unittest import TestCase
@@ -81,6 +82,15 @@ class TestSerializationCommon(TestCase):
 
         s = serialize(Foo(), globals=locals())
         self.assertEqual(s.get('foo'), 'bar')
+
+    def test_serializer_registration_datetime_overrides_default(self):
+        _dict = {'x': 1}
+
+        @serializer_of(datetime)
+        def foo(d: datetime) -> dict:
+            return _dict
+
+        self.assertEqual(_dict, serialize(datetime.now(), type_key=None))
 
     def test_serialization_regular_class_raises_error(self):
         class Foo:
