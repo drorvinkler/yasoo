@@ -36,15 +36,23 @@ NoneType = type(None)
 class Deserializer:
     def __init__(self) -> None:
         super().__init__()
+        t = Dict[type, Callable[[Dict[str, Any], Type[T]], T]]
         self._custom_deserializers: Dict[Type[T], Callable[[Dict[str, Any]], T]] = {}
+        self._inheritance_deserializers: t = {}
 
-    def register(self, type_to_register: Optional[Union[Type, str]] = None):
+    def register(
+        self,
+        type_to_register: Optional[Union[Type, str]] = None,
+        include_descendants: bool = False,
+    ):
         """
         Registers a custom deserialization method that takes a dictionary and returns an instance of the registered
         type.
 
         :param type_to_register: The type of objects this method deserializes to. Can be a string, but then
             ``deserialize`` should be called with the ``globals`` parameter.
+        :param include_descendants: Whether to use the registered method for objects inheriting from the given type
+            or only for objects of the given type itself.
         """
 
         def registration_method(
@@ -55,6 +63,8 @@ class Deserializer:
             if t is None:
                 t = signature(method).return_annotation
             self._custom_deserializers[t] = method
+            if include_descendants:
+                self._inheritance_deserializers[t] = method
             return deserialization_method
 
         return registration_method
@@ -118,6 +128,9 @@ class Deserializer:
         deserialization_method = self._custom_deserializers.get(obj_type)
         if deserialization_method:
             return deserialization_method(data)
+        for base_class, method in self._inheritance_deserializers.items():
+            if issubclass(obj_type, base_class):
+                return method(data, obj_type)
 
         key_type = None
         try:
@@ -225,7 +238,8 @@ class Deserializer:
         if extraneous:
             extraneous_str = '", "'.join(extraneous)
             raise ValueError(
-                f'Found extraneous fields "{extraneous_str}" for object type "{obj_type.__name__}". Data is:\n{json.dumps(data)}'
+                f'Found extraneous fields "{extraneous_str}" for object type "{obj_type.__name__}".'
+                f"Data is:\n{json.dumps(data)}"
             )
 
     @staticmethod

@@ -137,6 +137,21 @@ class TestSerializationCommon(TestCase):
 
         self.assertEqual(_datetime, deserialize({'time': 0}, datetime, type_key=None))
 
+    def test_serializer_registration_including_descendants(self):
+        class Foo:
+            pass
+
+        class Bar(Foo):
+            pass
+
+        @deserializer_of(Foo, include_descendants=True)
+        def foo(_, obj_type=Foo) -> Foo:
+            return obj_type()
+
+        self.assertIsInstance(deserialize({}, Foo, type_key=None), Foo)
+        self.assertNotIsInstance(deserialize({}, Foo, type_key=None), Bar)
+        self.assertIsInstance(deserialize({}, Bar, type_key=None), Bar)
+
     def test_deserialization_of_list(self):
         class Foo:
             pass

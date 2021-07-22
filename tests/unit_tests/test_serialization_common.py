@@ -92,6 +92,22 @@ class TestSerializationCommon(TestCase):
 
         self.assertEqual(_dict, serialize(datetime.now(), type_key=None))
 
+    def test_serializer_registration_including_descendants(self):
+        _dict = {'x': 1}
+
+        class Foo:
+            pass
+
+        class Bar(Foo):
+            pass
+
+        @serializer_of(Foo, include_descendants=True)
+        def foo(f: Foo) -> dict:
+            return _dict
+
+        self.assertEqual(_dict, serialize(Foo(), type_key=None))
+        self.assertEqual(_dict, serialize(Bar(), type_key=None))
+
     def test_serialization_regular_class_raises_error(self):
         class Foo:
             pass

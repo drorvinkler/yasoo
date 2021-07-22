@@ -21,14 +21,19 @@ class Serializer:
     def __init__(self) -> None:
         super().__init__()
         self._custom_serializers: Dict[type, Callable[[Any], Dict[str, Any]]] = {}
+        self._inheritance_serializers: Dict[type, Callable[[Any], Dict[str, Any]]] = {}
 
-    def register(self, type_to_register: Optional[Type] = None):
+    def register(
+        self, type_to_register: Optional[Type] = None, include_descendants: bool = False
+    ):
         """
         Registers a custom serialization method that takes the object to be serialized and returns a json-serializable
         dictionary.
 
         :param type_to_register: The type of objects this method serializes. Can be a string, but then ``serialize``
             should be called with the ``globals`` parameter.
+        :param include_descendants: Whether to use the registered method for objects inheriting from the given type
+            or only for objects of the given type itself.
         """
 
         def registration_method(
@@ -39,6 +44,8 @@ class Serializer:
             if t is None:
                 t = next(iter(signature(method).parameters.values())).annotation
             self._custom_serializers[t] = method
+            if include_descendants:
+                self._inheritance_serializers[t] = method
             return serialization_method
 
         return registration_method
@@ -96,7 +103,12 @@ class Serializer:
         inner=True,
     ):
         serialization_method = self._custom_serializers.get(type(obj))
-        if serialization_method:
+        if serialization_method is None:
+            for base_class, method in self._inheritance_serializers.items():
+                if isinstance(obj, base_class):
+                    serialization_method = method
+                    break
+        if serialization_method is not None:
             result = serialization_method(obj)
         else:
             try:
