@@ -33,3 +33,7 @@ class TestCommon(TestCase):
     def test_datetime(self):
         d = datetime.now()
         self.assertEqual(d, deserialize(serialize(d)))
+
+    def test_type(self):
+        t = MyMapping
+        self.assertEqual(t, deserialize(serialize(t)))

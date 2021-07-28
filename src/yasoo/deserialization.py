@@ -1,6 +1,6 @@
 import json
+from datetime import datetime
 from enum import Enum
-from importlib import import_module
 from inspect import signature
 from itertools import zip_longest
 from typing import (
@@ -17,6 +17,9 @@ from typing import (
     Tuple,
     overload,
 )
+
+from yasoo.default_customs import deserialize_type, deserialize_datetime
+from yasoo.utils import fully_qualified_string_to_type
 
 from .constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
 from .objects import DictWithSerializedKeys
@@ -37,8 +40,12 @@ class Deserializer:
     def __init__(self) -> None:
         super().__init__()
         t = Dict[type, Callable[[Dict[str, Any], Type[T]], T]]
-        self._custom_deserializers: Dict[Type[T], Callable[[Dict[str, Any]], T]] = {}
-        self._inheritance_deserializers: t = {}
+        self._custom_deserializers: Dict[Type[T], Callable[[Dict[str, Any]], T]] = {
+            datetime: deserialize_datetime,
+        }
+        self._inheritance_deserializers: t = {
+            type: deserialize_type,
+        }
 
     def register(
         self,
@@ -124,19 +131,21 @@ class Deserializer:
         obj_type = self._get_object_type(obj_type, data, type_key, all_globals)
         if type_key in data:
             data.pop(type_key)
+        real_type, generic_args = normalize_type(obj_type)
 
-        deserialization_method = self._custom_deserializers.get(obj_type)
+        deserialization_method = self._custom_deserializers.get(
+            obj_type, self._custom_deserializers.get(real_type)
+        )
         if deserialization_method:
             return deserialization_method(data)
         for base_class, method in self._inheritance_deserializers.items():
-            if issubclass(obj_type, base_class):
-                return method(data, obj_type)
+            if issubclass(real_type, base_class):
+                return method(data, real_type)
 
         key_type = None
         try:
             fields = {f.name: f for f in get_fields(obj_type)}
         except TypeError:
-            real_type, generic_args = normalize_type(obj_type)
             if issubclass(real_type, Enum):
                 return obj_type(data[ENUM_VALUE_KEY])
             elif issubclass(real_type, Mapping):
@@ -271,15 +280,15 @@ class Deserializer:
         return obj_type
 
     @staticmethod
-    def _get_type(type_name: str, all_globals: Dict[str, Any]) -> Type:
+    def _get_type(type_name: str, all_globals: Dict[str, Any]) -> type:
         if "." not in type_name:
             return Deserializer._get_non_fully_qualified_type(type_name, all_globals)
-        return Deserializer._get_fully_qualified_type(type_name)
+        return fully_qualified_string_to_type(type_name)
 
     @staticmethod
     def _get_non_fully_qualified_type(
         type_name: str, all_globals: Dict[str, Any]
-    ) -> Type:
+    ) -> type:
         if type_name == "list":
             return list
         if type_name == "set":
@@ -291,9 +300,3 @@ class Deserializer:
         if type_name not in all_globals:
             raise ValueError(f"type {type_name} not found in globals.")
         return all_globals[type_name]
-
-    @staticmethod
-    def _get_fully_qualified_type(type_name):
-        module_name = type_name[: type_name.rindex(".")]
-        class_name = type_name[len(module_name) + 1 :]
-        return getattr(import_module(module_name), class_name)

@@ -1,5 +1,10 @@
 Changelog
 =========
+0.9.1 (2021-07-28)
+___________________
+- Added a default (de)serializer for ``type`` objects.
+- Changed how the default (de)serializer of ``datetime`` is registered, to enable it for all (de)serializers.
+
 0.9.0 (2021-07-22)
 ___________________
 - Supporting registering custom (de)serializers for a class and all its descendants.

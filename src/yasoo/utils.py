@@ -1,3 +1,4 @@
+from importlib import import_module
 from typing import Dict, Any, Union, Type, List, Optional, Tuple
 
 import attr
@@ -92,6 +93,20 @@ def normalize_type(t: Union[type, GenericType]) -> Tuple[type, tuple]:
 
 def is_obj_supported_primitive(obj):
     return any(isinstance(obj, t) for t in SUPPORTED_PRIMITIVES) or obj is None
+
+
+def type_to_string(t: type, fully_qualified: bool) -> str:
+    name = t.__name__
+    if fully_qualified:
+        return ".".join((t.__module__, name))
+    else:
+        return name
+
+
+def fully_qualified_string_to_type(fully_qualified_type_name: str) -> type:
+    module_name = fully_qualified_type_name[: fully_qualified_type_name.rindex(".")]
+    class_name = fully_qualified_type_name[len(module_name) + 1 :]
+    return getattr(import_module(module_name), class_name)
 
 
 def _resolve_type(globals, t):

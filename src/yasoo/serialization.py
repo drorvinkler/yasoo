@@ -1,11 +1,13 @@
 import json
 import warnings
+from datetime import datetime
 from enum import Enum
 from inspect import signature
 from typing import Dict, Any, Union, Mapping, Iterable, Callable, Type, Optional
 
+from yasoo.default_customs import serialize_type, serialize_datetime
 from yasoo.objects import DictWithSerializedKeys
-from yasoo.utils import normalize_type
+from yasoo.utils import normalize_type, type_to_string
 
 from .constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
 from .utils import (
@@ -20,8 +22,12 @@ from .utils import (
 class Serializer:
     def __init__(self) -> None:
         super().__init__()
-        self._custom_serializers: Dict[type, Callable[[Any], Dict[str, Any]]] = {}
-        self._inheritance_serializers: Dict[type, Callable[[Any], Dict[str, Any]]] = {}
+        self._custom_serializers: Dict[type, Callable[[Any], Dict[str, Any]]] = {
+            datetime: serialize_datetime,
+        }
+        self._inheritance_serializers: Dict[type, Callable[[Any], Dict[str, Any]]] = {
+            type: serialize_type,
+        }
 
     def register(
         self, type_to_register: Optional[Type] = None, include_descendants: bool = False
@@ -338,12 +344,7 @@ class Serializer:
 
     @staticmethod
     def _get_type_data(obj, fully_qualified_types) -> str:
-        class_name = obj.__class__.__name__
-        if fully_qualified_types:
-            type_value = ".".join((obj.__class__.__module__, class_name))
-        else:
-            type_value = class_name
-        return type_value
+        return type_to_string(type(obj), fully_qualified_types)
 
     @staticmethod
     def _warn(warning):
