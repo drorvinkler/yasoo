@@ -1,12 +1,12 @@
+import warnings
 from datetime import datetime
 from enum import Enum
 from typing import Sequence
 from unittest import TestCase
 
+from tests.test_classes import FooContainer, MyMapping, MyIterable
 from yasoo import serialize, serializer, serializer_of
 from yasoo.constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
-
-from tests.test_classes import FooContainer, MyMapping, MyIterable
 
 _TYPE_KEY = '__type'
 
@@ -215,10 +215,12 @@ class TestSerializationCommon(TestCase):
     def _check_serialization_of_inner_iterable_of_primitives_with_given_type_key(self, iterable_type, preserve_iterable_types, type_key):
         size = 5
         it = iterable_type(range(size))
-        s = serialize(FooContainer(foo=it),
-                      type_key=type_key,
-                      fully_qualified_types=False,
-                      preserve_iterable_types=preserve_iterable_types)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            s = serialize(FooContainer(foo=it),
+                          type_key=type_key,
+                          fully_qualified_types=False,
+                          preserve_iterable_types=preserve_iterable_types)
         self.assertIsInstance(s, dict)
         self.assertIn('foo', s)
 
@@ -246,11 +248,13 @@ class TestSerializationCommon(TestCase):
 
         size = 5
         it = iterable_type(Foo() for _ in range(size))
-        s = serialize(FooContainer(foo=it),
-                      type_key=type_key,
-                      fully_qualified_types=False)
-        self.assertIsInstance(s, dict)
-        self.assertIn('foo', s)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            s = serialize(FooContainer(foo=it),
+                          type_key=type_key,
+                          fully_qualified_types=False)
+            self.assertIsInstance(s, dict)
+            self.assertIn('foo', s)
 
         foo = s['foo']
         self.assertIsInstance(foo, list)

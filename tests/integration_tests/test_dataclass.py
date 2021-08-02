@@ -1,11 +1,11 @@
 import sys
+import warnings
 from typing import Any, Dict, Tuple, Iterable, Generic, TypeVar
 from unittest import TestCase, skip
 
+from tests.test_classes import MyIterable, MyMapping
 from yasoo import serialize, deserialize, deserializer, serializer
 from yasoo.typing import List_, Set_, Dict_
-
-from tests.test_classes import MyIterable, MyMapping
 
 try:
     from dataclasses import dataclass, field
@@ -369,7 +369,9 @@ if DATACLASSES_EXIST:
                 return MyGeneric()
 
             f = Foo(MyGeneric())
-            f2 = deserialize(serialize(f, type_key=None), Foo, globals=locals())
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                f2 = deserialize(serialize(f, type_key=None), Foo, globals=locals())
             self.assertIsInstance(f2, Foo)
             self.assertIsInstance(f2.a, MyGeneric)
 
