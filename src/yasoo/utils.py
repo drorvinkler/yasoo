@@ -16,6 +16,13 @@ try:
     def _get_origin(t: GenericType):
         return t.__extra__ or t.__origin__
 
+    def _is_optional(t: type):
+        return (
+            getattr(t, "__origin__", None) is Union
+            and len(t.__args__) == 2
+            and any(a is NoneType for a in t.__args__)
+        )
+
 
 except ImportError:
     # Python >=3.7
@@ -23,6 +30,14 @@ except ImportError:
 
     def _get_origin(t: GenericType):
         return t.__origin__
+
+    def _is_optional(t: type):
+        return (
+            isinstance(t, GenericType)
+            and _get_origin(t) is Union
+            and len(t.__args__) == 2
+            and any(a is NoneType for a in t.__args__)
+        )
 
 
 generic_types = [GenericType]
@@ -79,17 +94,11 @@ def normalize_method(method) -> callable:
 def normalize_type(t: Union[type, GenericType]) -> Tuple[type, tuple]:
     if t == Any:
         t = None
+    if _is_optional(t):
+        return normalize_type(next(a for a in t.__args__ if a is not NoneType))
     if any(isinstance(t, gt) for gt in generic_types):
         real_type = _get_origin(t)
         generic_args = t.__args__
-        if (
-            real_type is Union
-            and len(generic_args) == 2
-            and any(a is NoneType for a in generic_args)
-        ):
-            real_type, generic_args = normalize_type(
-                next(a for a in generic_args if a is not NoneType)
-            )
     elif t is None or isinstance(t, type):
         real_type = t
         generic_args = tuple()
