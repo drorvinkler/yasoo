@@ -36,6 +36,7 @@ except ImportError:
     pass
 
 
+NoneType = type(None)
 SUPPORTED_PRIMITIVES = {bool, int, float, str}
 
 
@@ -81,6 +82,14 @@ def normalize_type(t: Union[type, GenericType]) -> Tuple[type, tuple]:
     if any(isinstance(t, gt) for gt in generic_types):
         real_type = _get_origin(t)
         generic_args = t.__args__
+        if (
+            real_type is Union
+            and len(generic_args) == 2
+            and any(a is NoneType for a in generic_args)
+        ):
+            real_type, generic_args = normalize_type(
+                next(a for a in generic_args if a is not NoneType)
+            )
     elif t is None or isinstance(t, type):
         real_type = t
         generic_args = tuple()

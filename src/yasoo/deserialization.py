@@ -19,8 +19,7 @@ from typing import (
 )
 
 from yasoo.default_customs import deserialize_type, deserialize_datetime
-from yasoo.utils import fully_qualified_string_to_type
-
+from yasoo.utils import fully_qualified_string_to_type, NoneType
 from .constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
 from .objects import DictWithSerializedKeys
 from .utils import (
@@ -33,7 +32,6 @@ from .utils import (
 )
 
 T = TypeVar("T")
-NoneType = type(None)
 
 
 class Deserializer:
@@ -260,7 +258,7 @@ class Deserializer:
         _, generic_args = normalize_type(type_hint)
         if len(generic_args) == 1 or len(generic_args) == 2 and generic_args[1] is ...:
             return [(generic_args[0], item) for item in data]
-        if len(generic_args) == len(data):
+        if len(generic_args) >= len(data):
             return list(zip(generic_args, data))
         return list(zip_longest(generic_args, data))
 

@@ -1,12 +1,11 @@
 from datetime import datetime
 from enum import Enum
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Optional, Tuple
 from unittest import TestCase
 
+from tests.test_classes import FooContainer, MyMapping
 from yasoo import deserialize, deserializer_of, deserializer
 from yasoo.constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
-
-from tests.test_classes import FooContainer, MyMapping
 
 _TYPE_KEY = '__type'
 
@@ -166,6 +165,24 @@ class TestSerializationCommon(TestCase):
         self.assertEqual(list_len, len(deserialized))
         for f in deserialized:
             self.assertIsInstance(f, Foo)
+
+    def test_deserialization_of_iterable_with_type_hint_longer_than_data(self):
+        deserialized = deserialize([], Tuple[int, bool, int])
+        self.assertIsInstance(deserialized, list)
+        self.assertEqual(0, len(deserialized))
+
+    def test_deserialization_of_iterable_with_type_hint_optional(self):
+        class Foo:
+            pass
+
+        @deserializer_of(Foo)
+        def deserializer_foo(_) -> Foo:
+            return Foo()
+
+        deserialized = deserialize([1, {}, 2], Optional[Tuple[int, Foo, int]])
+        self.assertIsInstance(deserialized, list)
+        self.assertEqual(3, len(deserialized))
+        self.assertIsInstance(deserialized[1], Foo)
 
     def test_deserialization_of_inner_list_of_primitives_with_type_data(self):
         self._check_deserialization_of_inner_iterable_of_primitives(list, True)

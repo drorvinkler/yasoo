@@ -1,5 +1,9 @@
 Changelog
 =========
+0.9.2 (2021-08-02)
+___________________
+- Fixed a bug where deserialization of an iterable with a type hint could cause ``None`` values to be added to the iterable.
+
 0.9.1 (2021-07-28)
 ___________________
 - Added a default (de)serializer for ``type`` objects.
