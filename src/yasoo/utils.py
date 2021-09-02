@@ -1,5 +1,6 @@
+from functools import lru_cache
 from importlib import import_module
-from typing import Dict, Any, Union, Type, List, Optional, Tuple
+from typing import Dict, Any, Union, List, Optional, Tuple
 
 import attr
 from attr.exceptions import NotAnAttrsClassError
@@ -58,15 +59,15 @@ SUPPORTED_PRIMITIVES = {bool, int, float, str}
 @attr.attrs
 class Field:
     name: str = attr.attrib()
-    field_type: Type = attr.attrib()
+    field_type: type = attr.attrib()
     mandatory: bool = attr.attrib()
     validator: Optional[callable] = attr.attrib(default=None)
     converter: Optional[callable] = attr.attrib(default=None)
 
 
 def resolve_types(
-    to_resolve: Dict[Union[Type, str], Any], globals: Dict[str, Any]
-) -> Dict[Type, Any]:
+    to_resolve: Dict[Union[type, str], Any], globals: Dict[str, Any]
+) -> Dict[type, Any]:
     return {_resolve_type(globals, k): v for k, v in to_resolve.items()}
 
 
