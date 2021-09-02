@@ -41,19 +41,20 @@ except ImportError:
         )
 
 
-generic_types = [GenericType]
+generic_types = (GenericType,)
 
 try:
     # Python >= 3.9
     from types import GenericAlias
 
-    generic_types.append(GenericAlias)
+    generic_types += (GenericAlias,)
 except ImportError:
     pass
 
 
 NoneType = type(None)
 SUPPORTED_PRIMITIVES = {bool, int, float, str}
+_SUPPORTED_PRIMITIVES = tuple(SUPPORTED_PRIMITIVES)
 
 
 @attr.attrs
@@ -99,7 +100,7 @@ def normalize_type(t: Union[type, GenericType]) -> Tuple[type, tuple]:
         t = None
     if _is_optional(t):
         return normalize_type(next(a for a in t.__args__ if a is not NoneType))
-    if any(isinstance(t, gt) for gt in generic_types):
+    if isinstance(t, generic_types):
         real_type = _get_origin(t)
         generic_args = t.__args__
     elif t is None or isinstance(t, type):
@@ -113,7 +114,7 @@ def normalize_type(t: Union[type, GenericType]) -> Tuple[type, tuple]:
 
 
 def is_obj_supported_primitive(obj):
-    return any(isinstance(obj, t) for t in SUPPORTED_PRIMITIVES) or obj is None
+    return isinstance(obj, _SUPPORTED_PRIMITIVES) or obj is None
 
 
 @lru_cache(None)
