@@ -1,5 +1,9 @@
 Changelog
 =========
+0.9.3 (2021-09-02)
+___________________
+- Improved performance using caching
+
 0.9.2 (2021-08-02)
 ___________________
 - Fixed a bug where deserialization of an iterable with a type hint could cause ``None`` values to be added to the iterable.
