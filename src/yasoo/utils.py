@@ -71,7 +71,8 @@ def resolve_types(
     return {_resolve_type(globals, k): v for k, v in to_resolve.items()}
 
 
-def get_fields(obj_type: Type) -> List[Field]:
+@lru_cache(None)
+def get_fields(obj_type: type) -> List[Field]:
     try:
         return [
             Field(f.name, f.type, f.default == attr.NOTHING, f.validator, f.converter)
@@ -92,6 +93,7 @@ def normalize_method(method) -> callable:
     return method.__func__ if isinstance(method, staticmethod) else method
 
 
+@lru_cache(None)
 def normalize_type(t: Union[type, GenericType]) -> Tuple[type, tuple]:
     if t == Any:
         t = None
@@ -114,6 +116,7 @@ def is_obj_supported_primitive(obj):
     return any(isinstance(obj, t) for t in SUPPORTED_PRIMITIVES) or obj is None
 
 
+@lru_cache(None)
 def type_to_string(t: type, fully_qualified: bool) -> str:
     name = t.__name__
     if fully_qualified:
@@ -122,6 +125,7 @@ def type_to_string(t: type, fully_qualified: bool) -> str:
         return name
 
 
+@lru_cache(None)
 def fully_qualified_string_to_type(fully_qualified_type_name: str) -> type:
     module_name = fully_qualified_type_name[: fully_qualified_type_name.rindex(".")]
     class_name = fully_qualified_type_name[len(module_name) + 1 :]
