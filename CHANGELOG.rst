@@ -1,5 +1,9 @@
 Changelog
 =========
+0.9.4 (2021-10-06)
+___________________
+- Supporting forward references in type hints
+
 0.9.3 (2021-09-02)
 ___________________
 - Improved performance using caching

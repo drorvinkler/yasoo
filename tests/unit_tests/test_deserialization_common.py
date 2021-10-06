@@ -223,6 +223,21 @@ class TestSerializationCommon(TestCase):
     def test_deserialization_of_inner_custom_mapping_of_classes(self):
         self._check_deserialization_of_inner_mapping_of_classes(MyMapping)
 
+    def test_deserialization_with_string_type_hint(self):
+        class Foo:
+            pass
+
+        @deserializer_of(Foo)
+        def deserialize_foo(_):
+            return Foo()
+
+        foo = deserialize({}, 'Foo', type_key=None, globals=locals())
+        self.assertIsInstance(foo, Foo)
+
+        with self.assertRaises(TypeError) as e:
+            deserialize({}, 'Bar', type_key=None, globals=locals())
+        self.assertIn('Bar', e.exception.args[0])
+
     def _check_deserialization_of_inner_iterable_of_primitives(self, iterable_type, include_type_data):
         it = iterable_type(range(5))
         foo = list(it)

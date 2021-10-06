@@ -1,10 +1,10 @@
-from typing import Sequence, Dict
+from typing import Sequence, Dict, Optional
 from unittest import TestCase
 
 from attr import attrs, attrib
-from yasoo import deserialize
 
 from tests.test_classes import AttrsClass
+from yasoo import deserialize
 
 
 class TestAttrsDeserialization(TestCase):
@@ -135,3 +135,12 @@ class TestAttrsDeserialization(TestCase):
         self.assertEqual(1, len(b.foo))
         self.assertIsInstance(b.foo.get(0), Foo)
         self.assertEqual(b.foo[0].a, 5)
+
+    def test_dataclass_deserialization_with_string_type_hint(self):
+        @attrs
+        class Foo:
+            foo: Optional['Foo'] = attrib(default=None)
+
+        foo = deserialize({'foo': {}}, Foo, type_key=None, globals=locals())
+        self.assertIsInstance(foo, Foo)
+        self.assertIsInstance(foo.foo, Foo)

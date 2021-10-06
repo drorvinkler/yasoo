@@ -12,7 +12,7 @@ except ModuleNotFoundError:
 
 try:
     # Python 3.6
-    from typing import GenericMeta as GenericType
+    from typing import _ForwardRef as ForwardRef, GenericMeta as GenericType
 
     def _get_origin(t: GenericType):
         return t.__extra__ or t.__origin__
@@ -27,7 +27,7 @@ try:
 
 except ImportError:
     # Python >=3.7
-    from typing import _GenericAlias as GenericType
+    from typing import ForwardRef, _GenericAlias as GenericType
 
     def _get_origin(t: GenericType):
         return t.__origin__
@@ -94,12 +94,25 @@ def normalize_method(method) -> callable:
     return method.__func__ if isinstance(method, staticmethod) else method
 
 
-@lru_cache(None)
-def normalize_type(t: Union[type, GenericType]) -> Tuple[type, tuple]:
+def normalize_type(
+    t: Union[type, GenericType], all_globals: Optional[dict] = None
+) -> Tuple[type, tuple]:
+    all_globals = all_globals or {}
     if t == Any:
         t = None
     if _is_optional(t):
-        return normalize_type(next(a for a in t.__args__ if a is not NoneType))
+        return normalize_type(
+            next(a for a in t.__args__ if a is not NoneType), all_globals
+        )
+    if isinstance(t, ForwardRef):
+        t = t.__forward_arg__
+    if isinstance(t, str) and t in all_globals:
+        return all_globals[t], tuple()
+    return _normalize_type(t)
+
+
+@lru_cache(None)
+def _normalize_type(t: Union[type, GenericType]) -> Tuple[type, tuple]:
     if isinstance(t, generic_types):
         real_type = _get_origin(t)
         generic_args = t.__args__

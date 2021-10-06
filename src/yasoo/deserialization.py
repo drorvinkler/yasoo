@@ -129,7 +129,7 @@ class Deserializer:
         obj_type = self._get_object_type(obj_type, data, type_key, all_globals)
         if type_key in data:
             data.pop(type_key)
-        real_type, generic_args = normalize_type(obj_type)
+        real_type, generic_args = normalize_type(obj_type, all_globals)
 
         deserialization_method = self._custom_deserializers.get(
             obj_type, self._custom_deserializers.get(real_type)
@@ -256,7 +256,9 @@ class Deserializer:
         if type_hint is None:
             return [(None, item) for item in data]
         _, generic_args = normalize_type(type_hint)
-        if len(generic_args) == 1 or len(generic_args) == 2 and generic_args[1] is ...:
+        if len(generic_args) == 1 or (
+            len(generic_args) == 2 and generic_args[1] is ...
+        ):
             return [(generic_args[0], item) for item in data]
         if len(generic_args) >= len(data):
             return list(zip(generic_args, data))

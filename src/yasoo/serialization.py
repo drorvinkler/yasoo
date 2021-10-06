@@ -8,7 +8,6 @@ from typing import Dict, Any, Union, Mapping, Iterable, Callable, Type, Optional
 from yasoo.default_customs import serialize_type, serialize_datetime
 from yasoo.objects import DictWithSerializedKeys
 from yasoo.utils import normalize_type, type_to_string
-
 from .constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
 from .utils import (
     resolve_types,
@@ -278,7 +277,11 @@ class Serializer:
 
     @classmethod
     def _warn_for_possible_problems_in_deserialization(
-        cls, obj, fields: Iterable[Field], data: Dict[str, Any], type_key_present: bool,
+        cls,
+        obj,
+        fields: Iterable[Field],
+        data: Dict[str, Any],
+        type_key_present: bool,
     ) -> None:
         for f in fields:
             value = data[f.name]
