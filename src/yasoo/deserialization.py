@@ -100,6 +100,7 @@ class Deserializer:
         data: Optional[Union[bool, int, float, str, list, Dict[str, Any]]],
         obj_type: Callable[[], T],
         type_key: Optional[str] = "__type",
+        allow_extra_fields: bool = False,
         globals: Optional[Dict[str, Any]] = None,
     ) -> T:
         ...
@@ -109,6 +110,7 @@ class Deserializer:
         data: Optional[Union[bool, int, float, str, list, Dict[str, Any]]],
         obj_type: Optional[Type[T]] = None,
         type_key: Optional[str] = "__type",
+        allow_extra_fields: bool = False,
         globals: Optional[Dict[str, Any]] = None,
     ) -> T:
         """
@@ -119,6 +121,8 @@ class Deserializer:
         :param obj_type: The type of the object to deserialize. Can only be ``None`` if ``data`` contains a type key.
         :param type_key: The key in ``data`` that contains the type name for non-primitive objects.
             Can be ``None`` if this key was omitted during serialization and deserialization should rely on type hints.
+        :param allow_extra_fields: Whether to throw an exception if the data contains fields that are not in the type
+            definition, or just ignore them.
         :param globals: A dictionary from type name to type, most easily acquired using the built-in ``globals()``
             function.
         """
@@ -127,13 +131,16 @@ class Deserializer:
                 self._custom_deserializers, globals
             )
 
-        return self._deserialize(data, obj_type, type_key, globals or {})
+        return self._deserialize(
+            data, obj_type, type_key, allow_extra_fields, globals or {}
+        )
 
     def _deserialize(
         self,
         data: Optional[Union[bool, int, float, str, list, Dict[str, Any]]],
         obj_type: Optional[Type[T]],
         type_key: Optional[str],
+        allow_extra_fields: bool,
         external_globals: Dict[str, Any],
     ):
         all_globals = dict(globals())
@@ -143,7 +150,8 @@ class Deserializer:
         if isinstance(data, list):
             list_types = self._get_list_types(obj_type, data)
             return [
-                self._deserialize(d, t, type_key, all_globals) for t, d in list_types
+                self._deserialize(d, t, type_key, allow_extra_fields, all_globals)
+                for t, d in list_types
             ]
 
         obj_type = self._get_object_type(obj_type, data, type_key, all_globals)
@@ -175,57 +183,83 @@ class Deserializer:
                     fields["data"].field_type = Dict[str, value_type]
                 else:
                     return self._load_mapping(
-                        data, real_type, generic_args, type_key, all_globals
+                        data,
+                        real_type,
+                        generic_args,
+                        type_key,
+                        allow_extra_fields,
+                        all_globals,
                     )
             elif issubclass(real_type, Iterable):
                 # If we got here it means data is not a list, so obj_type came from the data itself and is safe to use
-                return self._load_iterable(data, obj_type, type_key, all_globals)
+                return self._load_iterable(
+                    data, obj_type, type_key, allow_extra_fields, all_globals
+                )
             elif real_type != obj_type:
-                return self._deserialize(data, real_type, type_key, external_globals)
+                return self._deserialize(
+                    data, real_type, type_key, allow_extra_fields, external_globals
+                )
             else:
                 raise
 
         self._check_for_missing_fields(data, fields, obj_type)
-        self._check_for_extraneous_fields(data, fields, obj_type)
-        self._load_inner_fields(data, fields, type_key, all_globals)
+        self._check_for_extraneous_fields(data, fields, obj_type, allow_extra_fields)
+        self._load_inner_fields(data, fields, type_key, allow_extra_fields, all_globals)
         if obj_type is DictWithSerializedKeys:
             return self._load_dict_with_serialized_keys(
-                obj_type(**data), key_type, type_key, all_globals
+                obj_type(**data), key_type, type_key, allow_extra_fields, all_globals
             )
         return obj_type(**data)
 
     def _load_dict_with_serialized_keys(
-        self, obj: DictWithSerializedKeys, key_type, type_key, all_globals
+        self,
+        obj: DictWithSerializedKeys,
+        key_type,
+        type_key,
+        allow_extra_fields,
+        all_globals,
     ):
         data = {
-            self._deserialize(json.loads(k), key_type, type_key, all_globals): v
+            self._deserialize(
+                json.loads(k), key_type, type_key, allow_extra_fields, all_globals
+            ): v
             for k, v in obj.data.items()
         }
         obj_type = Deserializer._get_type(obj.original_type, all_globals)
         return obj_type(data)
 
     def _load_mapping(
-        self, data: Mapping, obj_type, generic_args, type_key, all_globals
+        self,
+        data: Mapping,
+        obj_type,
+        generic_args,
+        type_key,
+        allow_extra_fields,
+        all_globals,
     ):
         val_type = generic_args[1] if len(generic_args) > 1 else None
         return obj_type(
             {
-                k: self._deserialize(v, val_type, type_key, all_globals)
+                k: self._deserialize(
+                    v, val_type, type_key, allow_extra_fields, all_globals
+                )
                 for k, v in data.items()
             }
         )
 
-    def _load_iterable(self, data, obj_type, type_key, all_globals):
+    def _load_iterable(self, data, obj_type, type_key, allow_extra_fields, all_globals):
         return obj_type(
-            self._deserialize(i, None, type_key, all_globals)
+            self._deserialize(i, None, type_key, allow_extra_fields, all_globals)
             for i in data[ITERABLE_VALUE_KEY]
         )
 
-    def _load_inner_fields(self, data, fields, type_key, all_globals):
+    def _load_inner_fields(
+        self, data, fields, type_key, allow_extra_fields, all_globals
+    ):
         for key, value in data.items():
             field = fields[key]
             data[key] = self._deserialize(
-                value, field.field_type, type_key, all_globals
+                value, field.field_type, type_key, allow_extra_fields, all_globals
             )
 
     @classmethod
@@ -260,14 +294,16 @@ class Deserializer:
             )
 
     @staticmethod
-    def _check_for_extraneous_fields(data, fields, obj_type):
+    def _check_for_extraneous_fields(data, fields, obj_type, allow_extra_fields):
         extraneous = set(data.keys()).difference(fields)
-        if extraneous:
+        if extraneous and not allow_extra_fields:
             extraneous_str = '", "'.join(extraneous)
             raise ValueError(
                 f'Found extraneous fields "{extraneous_str}" for object type "{obj_type.__name__}".'
                 f"Data is:\n{json.dumps(data)}"
             )
+        for e in extraneous:
+            data.pop(e)
 
     @staticmethod
     def _get_list_types(
@@ -290,7 +326,7 @@ class Deserializer:
         data: Dict[str, Any],
         type_key: str,
         all_globals: Dict[str, Any],
-    ) -> Type:
+    ) -> type:
         if type_key in data:
             return Deserializer._get_type(data[type_key], all_globals)
         if obj_type is None or obj_type is Any:

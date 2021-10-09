@@ -45,6 +45,15 @@ class TestAttrsDeserialization(TestCase):
         except:
             pass
 
+    def test_attr_deserialization_with_allow_extra_fields(self):
+        @attrs
+        class Foo:
+            pass
+
+        foo = deserialize({'a': 5}, Foo, allow_extra_fields=True)
+        self.assertIsInstance(foo, Foo)
+        self.assertFalse(hasattr(foo, 'a'))
+
     def test_attr_deserialization_with_type_in_data(self):
         @attrs
         class Foo:
@@ -136,7 +145,7 @@ class TestAttrsDeserialization(TestCase):
         self.assertIsInstance(b.foo.get(0), Foo)
         self.assertEqual(b.foo[0].a, 5)
 
-    def test_dataclass_deserialization_with_string_type_hint(self):
+    def test_attr_deserialization_with_string_type_hint(self):
         @attrs
         class Foo:
             foo: Optional['Foo'] = attrib(default=None)
