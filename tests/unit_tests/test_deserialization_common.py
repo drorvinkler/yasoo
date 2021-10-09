@@ -4,7 +4,7 @@ from typing import Generic, TypeVar, Optional, Tuple
 from unittest import TestCase
 
 from tests.test_classes import FooContainer, MyMapping
-from yasoo import deserialize, deserializer_of, deserializer
+from yasoo import deserialize, deserializer_of, deserializer, unregister_deserializers
 from yasoo.constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
 
 _TYPE_KEY = '__type'
@@ -136,7 +136,7 @@ class TestSerializationCommon(TestCase):
 
         self.assertEqual(_datetime, deserialize({'time': 0}, datetime, type_key=None))
 
-    def test_serializer_registration_including_descendants(self):
+    def test_deserializer_registration_including_descendants(self):
         class Foo:
             pass
 
@@ -150,6 +150,20 @@ class TestSerializationCommon(TestCase):
         self.assertIsInstance(deserialize({}, Foo, type_key=None), Foo)
         self.assertNotIsInstance(deserialize({}, Foo, type_key=None), Bar)
         self.assertIsInstance(deserialize({}, Bar, type_key=None), Bar)
+
+    def test_deserializer_temporary_unregister(self):
+        class Foo:
+            pass
+
+        @deserializer_of(Foo)
+        def func(_):
+            return Foo()
+
+        with self.assertRaises(TypeError) as e:
+            with unregister_deserializers(Foo):
+                deserialize({}, Foo, type_key=None)
+        self.assertIn('attrs or dataclass classes', e.exception.args[0])
+        self.assertIsInstance(deserialize({}, Foo, type_key=None), Foo)
 
     def test_deserialization_of_list(self):
         class Foo:

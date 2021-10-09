@@ -1,9 +1,10 @@
 import json
 import warnings
+from contextlib import contextmanager
 from datetime import datetime
 from enum import Enum
 from inspect import signature
-from typing import Dict, Any, Union, Mapping, Iterable, Callable, Type, Optional
+from typing import Dict, Any, Union, Mapping, Iterable, Callable, Optional
 
 from yasoo.default_customs import serialize_type, serialize_datetime
 from yasoo.objects import DictWithSerializedKeys
@@ -29,7 +30,7 @@ class Serializer:
         }
 
     def register(
-        self, type_to_register: Optional[Type] = None, include_descendants: bool = False
+        self, type_to_register: Optional[type] = None, include_descendants: bool = False
     ):
         """
         Registers a custom serialization method that takes the object to be serialized and returns a json-serializable
@@ -54,6 +55,26 @@ class Serializer:
             return serialization_method
 
         return registration_method
+
+    @contextmanager
+    def unregister(self, *types: type):
+        """
+        Temporarily unregisters registered serializers, so ``serialize`` will use the default serialization
+        algorithm.
+
+        :param types: The types to serialize using the default algorithm.
+        :return:
+        """
+        types_funcs = [
+            (type_, self._custom_serializers.pop(type_, None)) for type_ in types
+        ]
+        try:
+            yield
+        finally:
+            for type_, func in types_funcs:
+                if func is not None:
+                    self._custom_serializers[type_] = func
+        pass
 
     def serialize(
         self,

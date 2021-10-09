@@ -5,7 +5,7 @@ from typing import Sequence
 from unittest import TestCase
 
 from tests.test_classes import FooContainer, MyMapping, MyIterable
-from yasoo import serialize, serializer, serializer_of
+from yasoo import serialize, serializer, serializer_of, unregister_serializers
 from yasoo.constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
 
 _TYPE_KEY = '__type'
@@ -126,6 +126,20 @@ class TestSerializationCommon(TestCase):
             return {'bar': Bar()}
 
         self.assertRaises(TypeError, serialize, Foo())
+
+    def test_serialization_temporary_unregister(self):
+        class Foo:
+            pass
+
+        @serializer_of(Foo)
+        def func(_):
+            return {'foo': 'bar'}
+
+        with self.assertRaises(TypeError) as e:
+            with unregister_serializers(Foo):
+                serialize(Foo(), type_key=None)
+        self.assertIn('attrs or dataclass classes', e.exception.args[0])
+        self.assertEquals(func(Foo()), serialize(Foo(), type_key=None))
 
     def test_serialization_of_list(self):
         class Foo:

@@ -1,4 +1,5 @@
 import json
+from contextlib import contextmanager
 from datetime import datetime
 from enum import Enum
 from inspect import signature
@@ -47,7 +48,7 @@ class Deserializer:
 
     def register(
         self,
-        type_to_register: Optional[Union[Type, str]] = None,
+        type_to_register: Optional[Union[Type[T], str]] = None,
         include_descendants: bool = False,
     ):
         """
@@ -61,7 +62,7 @@ class Deserializer:
         """
 
         def registration_method(
-            deserialization_method: Union[Callable[[Dict[str, Any]], Any], staticmethod]
+            deserialization_method: Union[Callable[[Dict[str, Any]], T], staticmethod]
         ):
             method = normalize_method(deserialization_method)
             t = type_to_register
@@ -73,6 +74,25 @@ class Deserializer:
             return deserialization_method
 
         return registration_method
+
+    @contextmanager
+    def unregister(self, *types: Type[T]):
+        """
+        Temporarily unregisters registered deserializers, so ``deserialize`` will use the default deserialization
+        algorithm.
+
+        :param types: The types to deserialize using the default algorithm.
+        :return:
+        """
+        types_funcs = [
+            (type_, self._custom_deserializers.pop(type_, None)) for type_ in types
+        ]
+        try:
+            yield
+        finally:
+            for type_, func in types_funcs:
+                if func is not None:
+                    self._custom_deserializers[type_] = func
 
     @overload
     def deserialize(
