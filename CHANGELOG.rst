@@ -1,12 +1,17 @@
 Changelog
 =========
+0.10.0 (2021-10-06)
+___________________
+- Allowing temporary de-registration of (de)serializers.
+- When deserializing, can ignore extra fields instead of failing.
+
 0.9.4 (2021-10-06)
 ___________________
-- Supporting forward references in type hints
+- Supporting forward references in type hints.
 
 0.9.3 (2021-09-02)
 ___________________
-- Improved performance using caching
+- Improved performance using caching.
 
 0.9.2 (2021-08-02)
 ___________________
