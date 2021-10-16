@@ -1,10 +1,11 @@
 from typing import Sequence, Dict, Optional
 from unittest import TestCase
+from unittest.mock import MagicMock
 
 from attr import attrs, attrib
 
 from tests.test_classes import AttrsClass
-from yasoo import deserialize
+from yasoo import deserialize, deserializer_of
 
 
 class TestAttrsDeserialization(TestCase):
@@ -153,3 +154,16 @@ class TestAttrsDeserialization(TestCase):
         foo = deserialize({'foo': {}}, Foo, type_key=None, globals=locals())
         self.assertIsInstance(foo, Foo)
         self.assertIsInstance(foo.foo, Foo)
+
+    def test_attr_deserialization_ignore_custom_deserializer_only_for_top_object(self):
+        @attrs
+        class Foo:
+            a: 'Foo' = attrib()
+
+        func = deserializer_of(Foo)(MagicMock(return_value=Foo(None)))
+
+        foo = deserialize({'a': {}}, Foo, type_key=None, ignore_custom_deserializer=True, globals=locals())
+        self.assertIsInstance(foo, Foo)
+        self.assertIsInstance(foo.a, Foo)
+        self.assertIs(foo.a.a, None)
+        self.assertEqual(1, func.call_count)

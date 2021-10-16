@@ -101,6 +101,7 @@ class Deserializer:
         obj_type: Callable[[], T],
         type_key: Optional[str] = "__type",
         allow_extra_fields: bool = False,
+        ignore_custom_deserializer: bool = False,
         globals: Optional[Dict[str, Any]] = None,
     ) -> T:
         ...
@@ -111,6 +112,7 @@ class Deserializer:
         obj_type: Optional[Type[T]] = None,
         type_key: Optional[str] = "__type",
         allow_extra_fields: bool = False,
+        ignore_custom_deserializer: bool = False,
         globals: Optional[Dict[str, Any]] = None,
     ) -> T:
         """
@@ -123,6 +125,9 @@ class Deserializer:
             Can be ``None`` if this key was omitted during serialization and deserialization should rely on type hints.
         :param allow_extra_fields: Whether to throw an exception if the data contains fields that are not in the type
             definition, or just ignore them.
+        :param ignore_custom_deserializer: Whether to ignore the custom deserializer for this obj_type and use the
+            default serializer instead. This only applies to the top level object, not to any inner objects
+            (see ``unregister`` for ignoring custom deserializer for inner objects as well).
         :param globals: A dictionary from type name to type, most easily acquired using the built-in ``globals()``
             function.
         """
@@ -132,7 +137,12 @@ class Deserializer:
             )
 
         return self._deserialize(
-            data, obj_type, type_key, allow_extra_fields, globals or {}
+            data,
+            obj_type,
+            type_key,
+            allow_extra_fields,
+            globals or {},
+            ignore_custom_deserializer,
         )
 
     def _deserialize(
@@ -142,6 +152,7 @@ class Deserializer:
         type_key: Optional[str],
         allow_extra_fields: bool,
         external_globals: Dict[str, Any],
+        ignore_custom_deserializer: bool = False,
     ):
         all_globals = dict(globals())
         all_globals.update(external_globals)
@@ -159,14 +170,15 @@ class Deserializer:
             data.pop(type_key)
         real_type, generic_args = normalize_type(obj_type, all_globals)
 
-        deserialization_method = self._custom_deserializers.get(
-            obj_type, self._custom_deserializers.get(real_type)
-        )
-        if deserialization_method:
-            return deserialization_method(data)
-        for base_class, method in self._inheritance_deserializers.items():
-            if issubclass(real_type, base_class):
-                return method(data, real_type)
+        if not ignore_custom_deserializer:
+            deserialization_method = self._custom_deserializers.get(
+                obj_type, self._custom_deserializers.get(real_type)
+            )
+            if deserialization_method:
+                return deserialization_method(data)
+            for base_class, method in self._inheritance_deserializers.items():
+                if issubclass(real_type, base_class):
+                    return method(data, real_type)
 
         key_type = None
         try:

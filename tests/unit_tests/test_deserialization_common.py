@@ -131,7 +131,7 @@ class TestSerializationCommon(TestCase):
         _datetime = datetime.now()
 
         @deserializer_of(datetime)
-        def foo(d: dict) -> datetime:
+        def foo(_) -> datetime:
             return _datetime
 
         self.assertEqual(_datetime, deserialize({'time': 0}, datetime, type_key=None))
@@ -162,6 +162,20 @@ class TestSerializationCommon(TestCase):
         with self.assertRaises(TypeError) as e:
             with unregister_deserializers(Foo):
                 deserialize({}, Foo, type_key=None)
+        self.assertIn('attrs or dataclass classes', e.exception.args[0])
+        self.assertIsInstance(deserialize({}, Foo, type_key=None), Foo)
+
+    def test_deserializer_ignore_custom_deserializer(self):
+        class Foo:
+            pass
+
+        @deserializer_of(Foo)
+        def func(_):
+            return Foo()
+
+        with self.assertRaises(TypeError) as e:
+            with unregister_deserializers(Foo):
+                deserialize({}, Foo, type_key=None, ignore_custom_deserializer=True)
         self.assertIn('attrs or dataclass classes', e.exception.args[0])
         self.assertIsInstance(deserialize({}, Foo, type_key=None), Foo)
 

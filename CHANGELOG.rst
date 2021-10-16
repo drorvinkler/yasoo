@@ -1,5 +1,9 @@
 Changelog
 =========
+0.11.0 (2021-10-16)
+___________________
+- Enabled ignoring the custom deserializer of just the outermost object.
+
 0.10.0 (2021-10-06)
 ___________________
 - Allowing temporary de-registration of (de)serializers.
