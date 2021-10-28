@@ -185,7 +185,15 @@ class Deserializer:
             fields = {f.name: f for f in get_fields(obj_type)}
         except TypeError:
             if issubclass(real_type, Enum):
-                return obj_type(data[ENUM_VALUE_KEY])
+                value = data[ENUM_VALUE_KEY]
+                if isinstance(value, str):
+                    try:
+                        return real_type[value]
+                    except KeyError:
+                        for e in real_type:
+                            if e.name.lower() == value.lower():
+                                return e
+                return real_type(value)
             elif issubclass(real_type, Mapping):
                 key_type = generic_args[0] if generic_args else None
                 if self._is_mapping_dict_with_serialized_keys(key_type, data):

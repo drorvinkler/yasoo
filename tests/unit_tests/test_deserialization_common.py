@@ -26,9 +26,47 @@ class TestSerializationCommon(TestCase):
             A = 5
             B = 89
 
-        obj = deserialize({ENUM_VALUE_KEY: 5}, obj_type=Foo, globals=locals())
+        obj = deserialize({ENUM_VALUE_KEY: Foo.A.name}, obj_type=Foo, globals=locals())
         self.assertEqual(type(obj), Foo)
         self.assertEqual(obj, Foo.A)
+
+    def test_enum_deserialization_case_insensitive(self):
+        class Foo(Enum):
+            AbC = 5
+            B = 89
+
+        obj = deserialize({ENUM_VALUE_KEY: Foo.AbC.name.lower()}, obj_type=Foo, globals=locals())
+        self.assertEqual(type(obj), Foo)
+        self.assertEqual(obj, Foo.AbC)
+
+    def test_enum_deserialization_by_value(self):
+        class Foo(Enum):
+            A = 5
+            B = 89
+
+        obj = deserialize({ENUM_VALUE_KEY: Foo.A.value}, obj_type=Foo, globals=locals())
+        self.assertEqual(type(obj), Foo)
+        self.assertEqual(obj, Foo.A)
+
+    def test_enum_deserialization_fallback_order(self):
+        class Foo(Enum):
+            A = 5
+            B = 'a'
+            C = 'A'
+            D = 'x'
+
+        # Default - by name
+        obj = deserialize({ENUM_VALUE_KEY: 'A'}, obj_type=Foo, globals=locals())
+        self.assertEqual(obj, Foo.A)
+        # Fallback 1 - by case-insensitive name
+        obj = deserialize({ENUM_VALUE_KEY: 'a'}, obj_type=Foo, globals=locals())
+        self.assertEqual(obj, Foo.A)
+        # Fallback 2 - by value
+        obj = deserialize({ENUM_VALUE_KEY: 'x'}, obj_type=Foo, globals=locals())
+        self.assertEqual(obj, Foo.D)
+        # Failure
+        with self.assertRaises(ValueError):
+            deserialize({ENUM_VALUE_KEY: 'y'}, obj_type=Foo, globals=locals())
 
     def test_deserializer_registration(self):
         class Foo:

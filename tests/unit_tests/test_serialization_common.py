@@ -25,7 +25,7 @@ class TestSerializationCommon(TestCase):
             B = 89
 
         s = serialize(Foo.A)
-        self.assertEqual(Foo.A.value, s[ENUM_VALUE_KEY])
+        self.assertEqual(Foo.A.name, s[ENUM_VALUE_KEY])
 
     def test_serializer_registration(self):
         class Foo:

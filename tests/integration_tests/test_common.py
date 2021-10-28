@@ -1,10 +1,10 @@
 from datetime import datetime
+from enum import Enum
 from typing import Dict, Any
 from unittest import TestCase
 
-from yasoo import serialize, deserialize
-
 from tests.test_classes import MyMapping
+from yasoo import serialize, deserialize
 
 
 class TestCommon(TestCase):
@@ -37,3 +37,11 @@ class TestCommon(TestCase):
     def test_type(self):
         t = MyMapping
         self.assertEqual(t, deserialize(serialize(t)))
+
+    def test_enum(self):
+        class MyEnum(Enum):
+            FIRST = 1
+            Second = {'x': 1, 'y': 2}
+
+        self.assertEqual(MyEnum.FIRST, deserialize(serialize(MyEnum.FIRST, type_key=None), MyEnum))
+        self.assertEqual(MyEnum.Second, deserialize(serialize(MyEnum.Second, type_key=None), MyEnum))

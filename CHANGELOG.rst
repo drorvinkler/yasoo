@@ -1,5 +1,10 @@
 Changelog
 =========
+0.12.0 (2021-10-28)
+___________________
+- Enums are now serialized by name, not by value.
+- Enum deserialization falls back to value lookup, for backwards compatibility.
+
 0.11.0 (2021-10-16)
 ___________________
 - Enabled ignoring the custom deserializer of just the outermost object.

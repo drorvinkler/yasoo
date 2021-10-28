@@ -147,7 +147,7 @@ class Serializer:
                 )
             except TypeError:
                 if isinstance(obj, Enum):
-                    result = {ENUM_VALUE_KEY: obj.value}
+                    result = {ENUM_VALUE_KEY: obj.name}
                 elif isinstance(obj, Mapping):
                     result = self._serialize_mapping(
                         obj,
