@@ -329,9 +329,14 @@ class Deserializer:
     def _get_list_types(
         type_hint: Optional[type], data: list
     ) -> List[Tuple[Optional[type], Any]]:
-        if type_hint is None:
+        generic_args = None
+        try:
+            if type_hint is not None:
+                _, generic_args = normalize_type(type_hint)
+        except TypeError:
+            pass
+        if generic_args is None:
             return [(None, item) for item in data]
-        _, generic_args = normalize_type(type_hint)
         if len(generic_args) == 1 or (
             len(generic_args) == 2 and generic_args[1] is ...
         ):

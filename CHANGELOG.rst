@@ -1,5 +1,9 @@
 Changelog
 =========
+0.12.1 (2021-10-31)
+___________________
+- Supporting deserialization of lists with generic type hints if the actual type was serialized.
+
 0.12.0 (2021-10-28)
 ___________________
 - Enums are now serialized by name, not by value.
