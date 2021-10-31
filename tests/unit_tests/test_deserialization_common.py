@@ -8,6 +8,7 @@ from yasoo import deserialize, deserializer_of, deserializer, unregister_deseria
 from yasoo.constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
 
 _TYPE_KEY = '__type'
+T = TypeVar('T')
 
 
 class TestSerializationCommon(TestCase):
@@ -83,6 +84,7 @@ class TestSerializationCommon(TestCase):
         class Foo:
             pass
 
+        # noinspection PyUnusedLocal
         class Bar:
             # noinspection PyNestedDecorators
             @deserializer_of(Foo)
@@ -129,8 +131,6 @@ class TestSerializationCommon(TestCase):
         self.assertEqual(Foo, type(f))
 
     def test_deserializer_registration_user_defined_generic(self):
-        T = TypeVar('T')
-
         class Foo(Generic[T]):
             pass
 
@@ -142,8 +142,6 @@ class TestSerializationCommon(TestCase):
         self.assertIsInstance(f, Foo)
 
     def test_deserializer_registration_user_defined_generic_different_args(self):
-        T = TypeVar('T')
-
         class Foo(Generic[T]):
             def __init__(self, a) -> None:
                 super().__init__()
@@ -231,6 +229,19 @@ class TestSerializationCommon(TestCase):
         self.assertEqual(list_len, len(deserialized))
         for f in deserialized:
             self.assertIsInstance(f, Foo)
+
+    def test_deserialization_of_list_with_generic_type_hint(self):
+        class Foo:
+            pass
+
+        @deserializer
+        def deserialize_foo(_) -> Foo:
+            return Foo()
+
+        deserialized = deserialize([{'__type': 'Foo'}, {'__type': 'Foo'}], obj_type=T, globals=locals())
+        self.assertIsInstance(deserialized, list)
+        self.assertEqual(2, len(deserialized))
+        self.assertTrue(all(isinstance(f, Foo) for f in deserialized))
 
     def test_deserialization_of_iterable_with_type_hint_longer_than_data(self):
         deserialized = deserialize([], Tuple[int, bool, int])
