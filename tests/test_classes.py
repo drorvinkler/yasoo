@@ -1,4 +1,5 @@
 from collections import Mapping, Iterable
+from typing import Optional
 
 from attr import attrs, attrib
 
@@ -11,6 +12,16 @@ class AttrsClass:
 @attrs
 class FooContainer:
     foo = attrib()
+
+
+@attrs
+class Parent:
+    child: Optional['Parent'] = attrib(default=None)
+
+
+@attrs
+class Child(Parent):
+    pass
 
 
 class MyIterable(Iterable):

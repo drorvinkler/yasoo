@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Generic, TypeVar, Optional, Tuple
 from unittest import TestCase
 
-from tests.test_classes import FooContainer, MyMapping
+from tests.test_classes import FooContainer, MyMapping, Child
 from yasoo import deserialize, deserializer_of, deserializer, unregister_deserializers
 from yasoo.constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
 
@@ -214,6 +214,16 @@ class TestSerializationCommon(TestCase):
                 deserialize({}, Foo, type_key=None, ignore_custom_deserializer=True)
         self.assertIn('attrs or dataclass classes', e.exception.args[0])
         self.assertIsInstance(deserialize({}, Foo, type_key=None), Foo)
+
+    def test_deserialization_discovers_globals(self):
+        data = {'child': {}}
+        result = deserialize(dict(data), Child, globals=globals())
+        self.assertIsInstance(result, Child)
+        self.assertEqual('Parent', type(result.child).__name__)
+
+        with self.assertRaises(TypeError) as e:
+            deserialize(dict(data), Child)
+        self.assertIn('Found type annotation Parent', e.exception.args[0])
 
     def test_deserialization_of_list(self):
         class Foo:

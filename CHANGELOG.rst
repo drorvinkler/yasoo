@@ -1,5 +1,9 @@
 Changelog
 =========
+0.12.2 (2021-11-15)
+___________________
+- If globals are passed to ``deserialize``, they are enriched with classes encountered during deserialization.
+
 0.12.1 (2021-10-31)
 ___________________
 - Supporting deserialization of lists with generic type hints if the actual type was serialized.

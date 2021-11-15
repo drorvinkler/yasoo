@@ -169,6 +169,11 @@ class Deserializer:
         if type_key in data:
             data.pop(type_key)
         real_type, generic_args = normalize_type(obj_type, all_globals)
+        if external_globals and isinstance(real_type, type):
+            bases = {real_type}
+            while bases:
+                all_globals.update((b.__name__, b) for b in bases)
+                bases = {ancestor for b in bases for ancestor in b.__bases__}
 
         if not ignore_custom_deserializer:
             deserialization_method = self._custom_deserializers.get(
