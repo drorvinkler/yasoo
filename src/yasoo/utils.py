@@ -147,7 +147,7 @@ def fully_qualified_string_to_type(fully_qualified_type_name: str) -> type:
 
 
 def _resolve_type(globals, t):
-    return globals.get(t) if isinstance(t, str) else t
+    return globals.get(t, t) if isinstance(t, str) else t
 
 
 def _dataclass_field_mandatory(field):

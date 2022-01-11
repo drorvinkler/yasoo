@@ -225,6 +225,20 @@ class TestSerializationCommon(TestCase):
             deserialize(dict(data), Child)
         self.assertIn('Found type annotation Parent', e.exception.args[0])
 
+    def test_deserializer_registration_can_defer_dereference(self):
+        class Foo:
+            pass
+
+            @staticmethod
+            @deserializer
+            def func(_) -> 'Foo':
+                return Foo()
+
+        with self.assertRaises(Exception):
+            f = deserialize({}, Foo, globals=globals())
+        f = deserialize({}, Foo, globals=locals())
+        self.assertEqual(Foo, type(f))
+
     def test_deserialization_of_list(self):
         class Foo:
             pass

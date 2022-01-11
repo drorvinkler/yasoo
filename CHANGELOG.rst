@@ -1,5 +1,9 @@
 Changelog
 =========
+0.12.2 (2022-01-11)
+___________________
+- If a deserialization method's forward reference is not found in globals, it will be searched for again every deserialization until it is found.
+
 0.12.2 (2021-11-15)
 ___________________
 - If globals are passed to ``deserialize``, they are enriched with classes encountered during deserialization.
