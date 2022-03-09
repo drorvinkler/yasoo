@@ -141,3 +141,14 @@ if DATACLASSES_EXIST:
             self.assertEqual(1, len(b.foo))
             self.assertIsInstance(b.foo.get(0), Foo)
             self.assertEqual(b.foo[0].a, 5)
+
+        def test_dataclass_deserialization_with_non_init_field(self):
+            @dataclass
+            class Foo:
+                a: int
+                b: str = field(init=False)
+
+            f = deserialize({'a': 5, 'b': 'x'}, Foo, globals=locals())
+            self.assertIsInstance(f, Foo)
+            self.assertEqual(5, f.a)
+            self.assertEqual('x', f.b)

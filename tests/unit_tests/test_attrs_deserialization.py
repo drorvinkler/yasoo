@@ -3,9 +3,9 @@ from unittest import TestCase
 from unittest.mock import MagicMock
 
 from attr import attrs, attrib
+from yasoo import deserialize, deserializer_of
 
 from tests.test_classes import AttrsClass
-from yasoo import deserialize, deserializer_of
 
 
 class TestAttrsDeserialization(TestCase):
@@ -167,3 +167,14 @@ class TestAttrsDeserialization(TestCase):
         self.assertIsInstance(foo.a, Foo)
         self.assertIs(foo.a.a, None)
         self.assertEqual(1, func.call_count)
+
+    def test_attr_deserialization_with_non_init_field(self):
+        @attrs
+        class Foo:
+            a: int = attrib()
+            b: str = attrib(init=False)
+
+        f = deserialize({'a': 5, 'b': 'x'}, Foo, globals=locals())
+        self.assertIsInstance(f, Foo)
+        self.assertEqual(5, f.a)
+        self.assertEqual('x', f.b)

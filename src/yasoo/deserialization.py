@@ -21,6 +21,7 @@ from typing import (
 
 from yasoo.default_customs import deserialize_type, deserialize_datetime
 from yasoo.utils import fully_qualified_string_to_type, NoneType
+
 from .constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
 from .objects import DictWithSerializedKeys
 from .utils import (
@@ -234,7 +235,12 @@ class Deserializer:
             return self._load_dict_with_serialized_keys(
                 obj_type(**data), key_type, type_key, allow_extra_fields, all_globals
             )
-        return obj_type(**data)
+        kwargs = {k: v for k, v in data.items() if fields[k].init}
+        result = obj_type(**kwargs)
+        for k, v in data.items():
+            if k not in kwargs:
+                setattr(result, k, v)
+        return result
 
     def _load_dict_with_serialized_keys(
         self,

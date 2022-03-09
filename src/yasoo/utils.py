@@ -62,6 +62,7 @@ class Field:
     name: str = attr.attrib()
     field_type: type = attr.attrib()
     mandatory: bool = attr.attrib()
+    init: bool = attr.attrib()
     validator: Optional[callable] = attr.attrib(default=None)
     converter: Optional[callable] = attr.attrib(default=None)
 
@@ -76,13 +77,20 @@ def resolve_types(
 def get_fields(obj_type: type) -> List[Field]:
     try:
         return [
-            Field(f.name, f.type, f.default == attr.NOTHING, f.validator, f.converter)
+            Field(
+                f.name,
+                f.type,
+                f.default == attr.NOTHING,
+                f.init,
+                f.validator,
+                f.converter,
+            )
             for f in attr.fields(obj_type)
         ]
     except NotAnAttrsClassError:
         try:
             return [
-                Field(f.name, f.type, _dataclass_field_mandatory(f))
+                Field(f.name, f.type, _dataclass_field_mandatory(f), f.init)
                 for f in dataclasses.fields(obj_type)
             ]
         except (TypeError, AttributeError):

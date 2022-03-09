@@ -1,6 +1,10 @@
 Changelog
 =========
-0.12.2 (2022-01-11)
+0.12.4 (2022-03-09)
+___________________
+- Supporting deserialization of classes with fields with ``init=False``.
+
+0.12.3 (2022-01-11)
 ___________________
 - If a deserialization method's forward reference is not found in globals, it will be searched for again every deserialization until it is found.
 
