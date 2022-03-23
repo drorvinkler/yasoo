@@ -8,7 +8,7 @@ def serialize_time(t: time) -> dict:
 
 
 def deserialize_time(d: dict) -> time:
-    return time.fromisoformat(d["time"])
+    return _time_from_iso_format(d["time"])
 
 
 def serialize_datetime(d: datetime) -> dict:
@@ -25,3 +25,16 @@ def serialize_type(obj: type) -> dict:
 
 def deserialize_type(data: dict, _) -> type:
     return fully_qualified_string_to_type(data["fully_qualified_name"])
+
+
+def _time_from_iso_format_manually(s: str) -> time:
+    if "." not in s:
+        return datetime.strptime(s, "%H:%M:%S").time()
+    return datetime.strptime(s, "%H:%M:%S.%f").time()
+
+
+_time_from_iso_format = (
+    time.fromisoformat
+    if hasattr(time, "fromisoformat")
+    else _time_from_iso_format_manually
+)
