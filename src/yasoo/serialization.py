@@ -1,16 +1,17 @@
+import datetime
 import json
 import warnings
 from contextlib import contextmanager
-from datetime import datetime
 from enum import Enum
 from inspect import signature
 from typing import Dict, Any, Union, Mapping, Iterable, Callable, Optional
 
-from yasoo.default_customs import serialize_type, serialize_datetime
-from yasoo.objects import DictWithSerializedKeys
-from yasoo.utils import normalize_type, type_to_string
 from .constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
+from .default_customs import serialize_type, serialize_time, serialize_datetime
+from .objects import DictWithSerializedKeys
 from .utils import (
+    normalize_type,
+    type_to_string,
     resolve_types,
     get_fields,
     normalize_method,
@@ -23,7 +24,8 @@ class Serializer:
     def __init__(self) -> None:
         super().__init__()
         self._custom_serializers: Dict[type, Callable[[Any], Dict[str, Any]]] = {
-            datetime: serialize_datetime,
+            datetime.time: serialize_time,
+            datetime.datetime: serialize_datetime,
         }
         self._inheritance_serializers: Dict[type, Callable[[Any], Dict[str, Any]]] = {
             type: serialize_type,

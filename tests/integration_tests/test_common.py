@@ -3,8 +3,9 @@ from enum import Enum
 from typing import Dict, Any
 from unittest import TestCase
 
-from tests.test_classes import MyMapping
 from yasoo import serialize, deserialize
+
+from tests.test_classes import MyMapping
 
 
 class TestCommon(TestCase):
@@ -29,6 +30,10 @@ class TestCommon(TestCase):
 
         restored = deserialize(serialized)
         self.assertEqual(original, restored)
+
+    def test_time(self):
+        t = datetime.now().time()
+        self.assertEqual(t, deserialize(serialize(t)))
 
     def test_datetime(self):
         d = datetime.now()

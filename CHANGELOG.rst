@@ -1,5 +1,9 @@
 Changelog
 =========
+0.12.5 (2022-03-23)
+___________________
+- Added a default (de)serializer for ``time`` objects.
+
 0.12.4 (2022-03-09)
 ___________________
 - Supporting deserialization of classes with fields with ``init=False``.

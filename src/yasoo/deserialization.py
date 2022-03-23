@@ -1,6 +1,6 @@
+import datetime
 import json
 from contextlib import contextmanager
-from datetime import datetime
 from enum import Enum
 from inspect import signature
 from itertools import zip_longest
@@ -19,10 +19,8 @@ from typing import (
     overload,
 )
 
-from yasoo.default_customs import deserialize_type, deserialize_datetime
-from yasoo.utils import fully_qualified_string_to_type, NoneType
-
 from .constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
+from .default_customs import deserialize_type, deserialize_time, deserialize_datetime
 from .objects import DictWithSerializedKeys
 from .utils import (
     resolve_types,
@@ -31,6 +29,8 @@ from .utils import (
     normalize_type,
     is_obj_supported_primitive,
     SUPPORTED_PRIMITIVES,
+    fully_qualified_string_to_type,
+    NoneType,
 )
 
 T = TypeVar("T")
@@ -41,7 +41,8 @@ class Deserializer:
         super().__init__()
         t = Dict[type, Callable[[Dict[str, Any], Type[T]], T]]
         self._custom_deserializers: Dict[Type[T], Callable[[Dict[str, Any]], T]] = {
-            datetime: deserialize_datetime,
+            datetime.time: deserialize_time,
+            datetime.datetime: deserialize_datetime,
         }
         self._inheritance_deserializers: t = {
             type: deserialize_type,
