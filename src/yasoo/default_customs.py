@@ -1,6 +1,14 @@
-from datetime import datetime, time
+from datetime import date, time, datetime
 
 from .utils import type_to_string, fully_qualified_string_to_type
+
+
+def serialize_date(d: date) -> dict:
+    return {"date": d.toordinal()}
+
+
+def deserialize_date(d: dict) -> date:
+    return date.fromordinal(d["date"])
 
 
 def serialize_time(t: time) -> dict:

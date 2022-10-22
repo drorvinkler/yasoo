@@ -31,6 +31,10 @@ class TestCommon(TestCase):
         restored = deserialize(serialized)
         self.assertEqual(original, restored)
 
+    def test_date(self):
+        d = datetime.now().date()
+        self.assertEqual(d, deserialize(serialize(d)))
+
     def test_time(self):
         t = datetime.now().time()
         self.assertEqual(t, deserialize(serialize(t)))

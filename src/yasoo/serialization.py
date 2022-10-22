@@ -7,7 +7,12 @@ from inspect import signature
 from typing import Dict, Any, Union, Mapping, Iterable, Callable, Optional
 
 from .constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
-from .default_customs import serialize_type, serialize_time, serialize_datetime
+from .default_customs import (
+    serialize_type,
+    serialize_time,
+    serialize_datetime,
+    serialize_date,
+)
 from .objects import DictWithSerializedKeys
 from .utils import (
     normalize_type,
@@ -24,6 +29,7 @@ class Serializer:
     def __init__(self) -> None:
         super().__init__()
         self._custom_serializers: Dict[type, Callable[[Any], Dict[str, Any]]] = {
+            datetime.date: serialize_date,
             datetime.time: serialize_time,
             datetime.datetime: serialize_datetime,
         }

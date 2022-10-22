@@ -20,7 +20,12 @@ from typing import (
 )
 
 from .constants import ENUM_VALUE_KEY, ITERABLE_VALUE_KEY
-from .default_customs import deserialize_type, deserialize_time, deserialize_datetime
+from .default_customs import (
+    deserialize_type,
+    deserialize_time,
+    deserialize_datetime,
+    deserialize_date,
+)
 from .objects import DictWithSerializedKeys
 from .utils import (
     resolve_types,
@@ -41,6 +46,7 @@ class Deserializer:
         super().__init__()
         t = Dict[type, Callable[[Dict[str, Any], Type[T]], T]]
         self._custom_deserializers: Dict[Type[T], Callable[[Dict[str, Any]], T]] = {
+            datetime.date: deserialize_date,
             datetime.time: deserialize_time,
             datetime.datetime: deserialize_datetime,
         }

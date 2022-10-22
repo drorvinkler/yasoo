@@ -1,5 +1,9 @@
 Changelog
 =========
+0.12.6 (2022-10-22)
+___________________
+- Added a default (de)serializer for ``date`` objects.
+
 0.12.5 (2022-03-23)
 ___________________
 - Added a default (de)serializer for ``time`` objects.
