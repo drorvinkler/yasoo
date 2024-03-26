@@ -13,7 +13,7 @@ A python serializer of `attrs` and `dataclass` objects that doesn't rely on type
 Moreover, if you have a field that can contain multiple types of values, or a field which contains some specific implementation of an abstract class, `yasoo` has no problem with that.
 
 For example, this code works fine:
-```
+```python
 from attr import attrs, attrib
 from yasoo import serialize, deserialize
 
@@ -32,7 +32,7 @@ assert(deserialize(serialized).foo == 5)
 ## Usage
 ### Basic Usage
 For simple objects, use:
-```
+```python
 from yasoo import serialize, deserialize
 
 with open(path, 'w') as f:
@@ -44,7 +44,7 @@ with open(path) as f:
 ### Advanced Usage
 #### Deserializing Collections of Objects
 You can deserialize collections of objects:
-```
+```python
 from attr import attrs, attrib
 from yasoo import serialize, deserialize
 from yasoo.typing import List_
@@ -62,7 +62,7 @@ Notice that passing the object type as `List[Foo]` won't give you the type
 of `de_foos`, but using `yasoo.typing.List_` will fix this.
 #### Custom (De)Serializers
 For objects that need custom serialization/deserialization, you can register your own methods:
-```
+```python
 from attr import attrs, attrib, asdict
 from yasoo import serialize, deserialize, serializer, deserializer
 
@@ -89,7 +89,7 @@ class Foo:
         return foo
 ```
 Notice that registering custom methods with forward reference (i.e. `'Foo'` instead of `Foo`) requires passing the `globals` parameter to `serialize`/`deserialize`, e.g.
-```
+```python
 serialize(obj, globals=globals())
 ```
 #### Using Type Hints
@@ -103,7 +103,7 @@ If you want to be able to deserialize them back to anything other than a list, s
 Note: setting the `preserve_iterable_types` parameter to `True` will cause all iterables that are not `list` to be serialized as dictionaries with their type saved under the `type_key`.
 #### Multiple Serialization Methods For The Same Type
 If you want to define a custom serialization method for a type for a specific use case, without affecting the default serializer, you can create another instance of `Serializer` and register the method on that instance. For example:
-```
+```python
 from yasoo import Serializer, serializer, serialize
 
 @serializer
